@@ -3,16 +3,23 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { configureApp } from '../src/configure-app';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
+  let originalEnvironment: NodeJS.ProcessEnv;
 
   beforeEach(async () => {
+    originalEnvironment = { ...process.env };
+    process.env.JWT_SECRET = 'secreto-exclusivo-de-pruebas-con-32-bytes';
+    delete process.env.ADMIN_EMAIL;
+    delete process.env.ADMIN_PASSWORD;
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    configureApp(app);
     await app.init();
   });
 
@@ -25,5 +32,6 @@ describe('AppController (e2e)', () => {
 
   afterEach(async () => {
     await app.close();
+    process.env = originalEnvironment;
   });
 });

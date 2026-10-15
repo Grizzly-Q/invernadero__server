@@ -1,98 +1,118 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Servidor del invernadero
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API NestJS con autenticación JWT para una aplicación Android en Java y autorización básica por roles.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Preparación
 
-## Description
+Requiere Node.js 20.19+, 22.12+ o 24+. Instalar dependencias y copiar la configuración:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+```powershell
+npm install
+Copy-Item .env.example .env
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 ```
 
-## Compile and run the project
+Guardar el valor generado en `JWT_SECRET` dentro de `.env`. El servidor rechaza secretos menores de 32 bytes o duraciones inválidas. No compartir ni incorporar este secreto a Android. Para crear un administrador inicial, configurar **ambos** `ADMIN_EMAIL` y `ADMIN_PASSWORD` (8 a 128 caracteres). Sin esos valores no se crea ningún administrador. El registro público siempre crea usuarios `USER`.
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```powershell
+npm run start:dev
 ```
 
-## Run tests
+Por defecto escucha en el puerto 3000. El único JWT dura 900 segundos (15 minutos); `JWT_ACCESS_TTL_SECONDS` permite cambiar esta duración. Al vencer, el usuario debe iniciar sesión otra vez.
 
-```bash
-# unit tests
-$ npm run test
+## Endpoints
 
-# e2e tests
-$ npm run test:e2e
+| Método | Ruta | Acceso | Resultado |
+| --- | --- | --- | --- |
+| GET | `/` | Público | Bienvenida |
+| POST | `/auth/register` | Público | Registro y JWT (201) |
+| POST | `/auth/login` | Público | Nueva sesión y JWT (200) |
+| GET | `/auth/me` | JWT Bearer | Perfil autenticado (200) |
+| POST | `/auth/logout` | JWT Bearer | Revoca la sesión actual (204) |
+| GET | `/users` | JWT Bearer y rol ADMIN | Perfiles sin credenciales (200) |
 
-# test coverage
-$ npm run test:cov
+Registro:
+
+```json
+{
+  "name": "Ana",
+  "email": "ana@example.com",
+  "password": "Una-clave-segura-123"
+}
 ```
 
-## Deployment
+Login recibe `email` y `password`. Se normaliza el correo, pero nunca se recorta ni modifica la contraseña. Se rechazan campos adicionales, incluido `role`, con 400. Las contraseñas deben tener entre 8 y 128 caracteres.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Registro y login devuelven un único JWT con este contrato:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```json
+{
+  "accessToken": "<JWT firmado>",
+  "tokenType": "Bearer",
+  "expiresIn": 900,
+  "user": {
+    "id": "<UUID>",
+    "name": "Ana",
+    "email": "ana@example.com",
+    "role": "USER"
+  }
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+El JWT contiene `sub` (usuario), `sid` (sesión), `type`, `iat`, `exp`, `iss` y `aud`, sin contraseñas. Las peticiones protegidas envían:
 
-## Resources
+```http
+Authorization: Bearer <accessToken>
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Cuando el JWT vence, la API devuelve 401 y Android debe volver a mostrar login. El logout revoca inmediatamente el JWT de la sesión actual; otras sesiones del usuario siguen abiertas.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Errores: **400** para datos inválidos, **401** para credenciales o tokens inválidos/vencidos, **403** para permisos insuficientes, **409** para correo duplicado y **429** al superar límites por IP. NestJS devuelve JSON con `statusCode`, `message` (texto o lista de errores) y `error` cuando corresponde. Login y registro admiten 5 solicitudes por minuto por ruta/IP; el límite general es de 60.
 
-## Support
+## Decoradores de autorización
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Todas las rutas nuevas requieren JWT por defecto. `@Public()` permite rutas públicas, `@Roles(...)` exige cualquiera de los roles indicados y `@CurrentUser()` inyecta el perfil que verificó el servidor.
 
-## Stay in touch
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { CurrentUser } from './auth/decorators/current-user.decorator';
+import { Roles } from './auth/decorators/roles.decorator';
+import { Role } from './users/role.enum';
+import type { PublicUser } from './users/user.types';
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+/** Ejemplo de un recurso que admite los dos roles existentes. */
+@Controller('invernaderos')
+export class InvernaderosController {
+  /** Devuelve la identidad verificada para una operación autorizada. */
+  @Get('perfil')
+  @Roles(Role.ADMIN, Role.USER)
+  perfil(@CurrentUser() user: PublicUser): PublicUser {
+    return user;
+  }
+}
+```
 
-## License
+Registrar cualquier controlador nuevo en su módulo. `@Roles` puede usarse en clases o métodos; la declaración del método reemplaza la de la clase. No combinar `@Public()` y `@Roles()` en la misma ruta: las rutas con roles deben autenticarse. El servidor consulta el rol actual del usuario, sin aceptar roles enviados por Android. El ejemplo real de autorización ADMIN se encuentra en `src/users/users.controller.ts`.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Android en Java
+
+Consultar [la guía y los ejemplos de Retrofit/OkHttp](docs/android-auth.md). La API utiliza JSON y Bearer; no requiere cookies ni CORS para un cliente Android nativo.
+
+## Verificación
+
+```powershell
+npm run build
+npm run lint
+npm test -- --runInBand
+npm run test:e2e -- --runInBand
+```
+
+Las pruebas cubren registro, validación, duplicados concurrentes, login, JWT manipulado/vencido, audiencia/emisor, roles, revocación y límites de intentos. Utilizan credenciales ficticias y no requieren configurar un `.env`.
+
+## Persistencia y alcance de esta base
+
+**Usuarios, sesiones y límites de solicitudes se almacenan en memoria y se pierden al reiniciar.** Esta base sirve para desarrollo en un único proceso. Antes de un despliegue real, sustituir el almacén de `UsersService` por una base de datos con correo único y persistir las sesiones (identificador, usuario y vencimiento) para conservar la revocación entre reinicios. Para múltiples instancias, compartir también el almacén de límites de solicitudes y configurar correctamente el proxy de confianza.
+
+Las contraseñas se protegen con scrypt y sal aleatoria. Usar HTTPS para el tráfico real. No se incluyen recuperación de contraseña, verificación de correo ni administración de roles desde la API.
+
+Referencias del framework: [autenticación](https://docs.nestjs.com/security/authentication), [autorización](https://docs.nestjs.com/security/authorization) y [validación](https://docs.nestjs.com/techniques/validation).
