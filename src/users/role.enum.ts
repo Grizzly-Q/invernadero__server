@@ -1,5 +1,6 @@
-/** Roles asignados por el servidor; el registro público siempre utiliza USER. */
+/** Roles del sistema: Administrador, Operador y Controlador, sin jerarquía implícita. */
 export enum Role {
-  USER = 'USER',
   ADMIN = 'ADMIN',
+  OPERATOR = 'OPERATOR',
+  CONTROLLER = 'CONTROLLER',
 }

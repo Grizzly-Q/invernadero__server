@@ -47,7 +47,7 @@ describe('Autenticación JWT y autorización (e2e)', () => {
     return response.body as TokenResponse;
   }
 
-  it('registra USER, normaliza el correo y permite leer su perfil sin filtrar credenciales', async () => {
+  it('registra OPERATOR, normaliza el correo y permite leer su perfil sin filtrar credenciales', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/register')
       .send({ ...credentials, email: '  USUARIO@example.com  ' })
@@ -62,7 +62,7 @@ describe('Autenticación JWT y autorización (e2e)', () => {
       'tokenType',
       'user',
     ]);
-    expect(tokens.user.role).toBe(Role.USER);
+    expect(tokens.user.role).toBe(Role.OPERATOR);
     expect(tokens.user.email).toBe(credentials.email);
     expect(tokens.user).not.toHaveProperty('passwordHash');
     expect(tokens.user).not.toHaveProperty('password');
@@ -109,6 +109,7 @@ describe('Autenticación JWT y autorización (e2e)', () => {
 
   it.each([
     { ...credentials, role: 'ADMIN' },
+    { ...credentials, role: 'CONTROLLER' },
     { ...credentials, password: 'corta' },
     { ...credentials, email: 'incorrecto' },
     { ...credentials, name: '  ' },
@@ -165,7 +166,7 @@ describe('Autenticación JWT y autorización (e2e)', () => {
     }
   });
 
-  it('autoriza ADMIN y devuelve 403 para USER en el recurso protegido por roles', async () => {
+  it('autoriza ADMIN y devuelve 403 para OPERATOR en el recurso protegido por roles', async () => {
     const user = await register();
     await request(app.getHttpServer()).get('/users').expect(401);
     await request(app.getHttpServer())

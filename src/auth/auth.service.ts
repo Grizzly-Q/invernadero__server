@@ -32,7 +32,7 @@ export class AuthService {
     this.options = config.getOrThrow<AuthConfig>('auth');
   }
 
-  /** Registra un usuario USER y devuelve una nueva sesión; rechaza correos repetidos. */
+  /** Registra un Operador y devuelve una nueva sesión; rechaza correos repetidos. */
   async register(dto: RegisterDto): Promise<TokenResponse> {
     const user = await this.users.create(dto.name, dto.email, dto.password);
     return this.createSession(user);

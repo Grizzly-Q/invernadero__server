@@ -5,6 +5,7 @@ export interface PublicUser {
   id: string;
   name: string;
   email: string;
+  /** Cada usuario tiene un único rol asignado por el servidor. */
   role: Role;
 }
 
