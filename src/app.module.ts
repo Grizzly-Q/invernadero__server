@@ -4,30 +4,22 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
-import { authConfig } from './auth/auth.config';
+import { authConfig } from './config/auth.config';
+import { dbConfig } from './config/db.config';
 import { DbModule } from './db/db.module';
+import { validateEnvironment } from './config/environment.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnvironment,
       load: [() => ({ auth: authConfig() })],
     }),
-    // configuracion base TypeORM
+    // Configura la conexión PostgreSQL con las variables ya validadas.
     TypeOrmModule.forRootAsync({
-      //entrega el servicio de configuracion
       inject: [ConfigService],
-      //opciones de conexion de nest
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.getOrThrow<string>('DATABASE_URL'),
-        //carga las entidades automaticamente
-        autoLoadEntities: true,
-        //Evita que TypeOrm no modifica las tablas existentes
-        synchronize: false,
-        poolSize: 3,
-        ssl: { rejectUnauthorized: false },
-      }),
+      useFactory: dbConfig,
     }),
     AuthModule,
     DbModule,

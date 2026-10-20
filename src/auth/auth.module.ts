@@ -5,7 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { UsersController } from '../users/users.controller';
 import { UsersService } from '../users/users.service';
-import type { AuthConfig } from './auth.config';
+import type { AuthConfig } from '../config/auth.config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';

@@ -12,7 +12,18 @@ Copy-Item .env.example .env
 node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 ```
 
-Guardar el valor generado en `JWT_SECRET` dentro de `.env`. El servidor rechaza secretos menores de 32 bytes o duraciones inválidas. No compartir ni incorporar este secreto a Android. Para crear un administrador inicial, configurar **ambos** `ADMIN_EMAIL` y `ADMIN_PASSWORD` (8 a 128 caracteres). Sin esos valores no se crea ningún administrador. El registro público siempre crea usuarios `USER`.
+Completar las dos variables obligatorias de `.env`:
+
+| Variable | Validación |
+| --- | --- |
+| `DATABASE_URL` | Cadena `postgres://` o `postgresql://` con servidor y nombre de base de datos. Copiarla desde **Connect** en Supabase y completar las credenciales. No usar la URL HTTPS del proyecto. |
+| `JWT_SECRET` | Secreto de al menos 32 bytes y no compuesto únicamente por espacios. Usar el valor aleatorio generado anteriormente. |
+
+`ConfigModule` carga `.env` y valida estas variables antes de crear los servicios. La función `validateEnvironment` utiliza `plainToInstance` de `class-transformer` y `validateSync` de `class-validator` con reglas declaradas mediante decoradores. Las variables definidas en el proceso tienen prioridad sobre `.env`. Los errores identifican las variables inválidas sin mostrar credenciales. La validación comprueba el formato, no la conectividad ni los permisos de PostgreSQL.
+
+No compartir ni incorporar estos valores a Android. Las opciones JWT conservan sus valores predeterminados y se rechazan duraciones inválidas. Para crear un administrador inicial, configurar **ambos** `ADMIN_EMAIL` y `ADMIN_PASSWORD` (8 a 128 caracteres). Sin esos valores no se crea ningún administrador. El registro público siempre crea usuarios `USER`.
+
+La configuración se centraliza en `src/config/`: `auth.config.ts` define las opciones JWT, `db.config.ts` construye las opciones de TypeORM y `environment.validation.ts` valida las variables obligatorias. `AppModule` registra estas configuraciones y los módulos consumidores acceden a ellas mediante `ConfigService`.
 
 ```powershell
 npm run start:dev
@@ -107,7 +118,7 @@ npm test -- --runInBand
 npm run test:e2e -- --runInBand
 ```
 
-Las pruebas cubren registro, validación, duplicados concurrentes, login, JWT manipulado/vencido, audiencia/emisor, roles, revocación y límites de intentos. Utilizan credenciales ficticias y no requieren configurar un `.env`.
+Las pruebas unitarias incluyen la validación del entorno y su integración con `ConfigModule`; utilizan credenciales ficticias y no requieren `.env` ni conexión a PostgreSQL. Las pruebas e2e actuales cargan `AppModule` completo, por lo que requieren `DATABASE_URL`, un `JWT_SECRET` válido y una base accesible. Cubren registro, validación, duplicados concurrentes, login, JWT manipulado/vencido, audiencia/emisor, roles, revocación y límites de intentos.
 
 ## Persistencia y alcance de esta base
 

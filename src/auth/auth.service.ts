@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import { UsersService } from '../users/users.service';
 import type { PublicUser } from '../users/user.types';
-import type { AuthConfig } from './auth.config';
+import type { AuthConfig } from '../config/auth.config';
 import type { AccessClaims, TokenResponse } from './auth.types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
