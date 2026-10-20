@@ -13,36 +13,23 @@ import { DbModule } from './db/db.module';
       isGlobal: true,
       load: [() => ({ auth: authConfig() })],
     }),
-
-    //Cong¿figura el typeORM
+    // configuracion base TypeORM
     TypeOrmModule.forRootAsync({
       //entrega el servicio de configuracion
       inject: [ConfigService],
-
       //opciones de conexion de nest
       useFactory: (config: ConfigService) => ({
-        //tipo de base de datos
         type: 'postgres',
-
-        //lee la cadena de conexion del .env
         url: config.getOrThrow<string>('DATABASE_URL'),
-
         //carga las entidades automaticamente
         autoLoadEntities: true,
-
-        //Evita que TypeOrm no modifica lalas tablas existentes
+        //Evita que TypeOrm no modifica las tablas existentes
         synchronize: false,
-
-        //Limite a 5 las conexiones que typeORM mantiene en su pool
-        poolSize: 5,
-
-        //conexion cifrda con ssl
+        poolSize: 3,
         ssl: { rejectUnauthorized: false },
       }),
     }),
-
     AuthModule,
-
     DbModule,
   ],
   controllers: [AppController],
