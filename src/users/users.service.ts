@@ -40,12 +40,16 @@ export class UsersService implements OnModuleInit {
     return user ? this.toPublic(user) : undefined;
   }
 
-  /** Crea un usuario y lanza ConflictException si el correo ya está registrado. */
+  /**
+   * Crea un usuario con rol Operador por defecto; solo el servidor puede asignar otro rol.
+   * @returns Perfil creado sin credenciales; se almacena temporalmente en memoria.
+   * @throws ConflictException si el correo normalizado ya está registrado.
+   */
   async create(
     name: string,
     email: string,
     password: string,
-    role: Role = Role.USER,
+    role: Role = Role.OPERATOR,
   ): Promise<PublicUser> {
     const normalized = email.trim().toLowerCase();
     const passwordHash = await this.passwords.hash(password);

@@ -10,7 +10,7 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 
-  /** Devuelve perfiles de usuarios; el guard devuelve 403 a usuarios normales. */
+  /** Devuelve perfiles; Operadores y Controladores reciben 403 en esta ruta. */
   @Get()
   findAll(): PublicUser[] {
     return this.users.findAll();
