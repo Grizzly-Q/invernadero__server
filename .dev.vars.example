@@ -1,0 +1,3 @@
+# Copiar a .dev.vars para usar Wrangler localmente; completar con credenciales de prueba.
+DATABASE_URL=
+JWT_SECRET=
