@@ -23,7 +23,27 @@ FROM public."Usuario"
 
 Devuelve la hora y el número de filas. Requiere una conexión válida, que exista exactamente `public."Usuario"` y permisos para leerla. Una conexión exitosa no garantiza que la tabla exista.
 
-## Alcance actual
+## Datos de prueba
+
+Con las tablas del esquema SQL ya creadas y `DATABASE_URL` y `JWT_SECRET`
+configurados en `.env`, ejecuta `npm run seed` (en PowerShell puedes usar
+`npm.cmd run seed`). El comando compila el proyecto antes de iniciar Nest.
+
+En una base vacía inserta 2 usuarios, 2 invernaderos, 2 asignaciones,
+2 controladores, 6 sensores, 6 límites, 18 mediciones, 2 configuraciones,
+2 horarios, 6 notificaciones y 4 ejecuciones de riego. Todas las inserciones
+se realizan en una transacción. Las fechas de ejemplo son del 1 de octubre de 2026.
+Ejecuta una sola instancia del seed a la vez: algunas comprobaciones de existencia
+no tienen una restricción única que proteja contra ejecuciones concurrentes.
+
+Los usuarios nuevos usan el hash `scrypt` de `PasswordService`. Los usuarios
+existentes se conservan, incluidas sus contraseñas; repetir el seed no migra
+hashes bcrypt anteriores. Las cuentas de prueba son `seed_admin_demo`
+(`AdminDemo2026!`) y `seed_operador_demo` (`OperadorDemo2026!`).
+Estas cuentas todavía no pueden iniciar sesión en la API: el login usa correo
+y usuarios en memoria, mientras que el esquema SQL identifica usuarios por nombre.
+
+## Persistencia de usuarios
 
 La consulta usa `DataSource.query()`. El registro y el inicio de sesión todavía utilizan usuarios en memoria: no insertan ni consultan la tabla `Usuario`. Antes de completar la persistencia hay que definir las entidades y conectar los servicios con sus repositorios.
 
