@@ -7,10 +7,12 @@ La preparación utiliza Android → HTTPS → Worker → contenedor Node.js/Nest
 la instancia lógica `api`, que se suspende tras diez minutos sin actividad. La siguiente petición puede
 tardar más por el arranque. Estos ajustes reducen el consumo, pero no representan un límite monetario.
 
-**Pendiente antes de producción:** usuarios y sesiones siguen en memoria. Deben persistirse en PostgreSQL
-antes de habilitar el despliegue automático de producción. Una sola instancia no evita su pérdida al
-reiniciar, suspender o actualizar. También se debe revisar TLS en `src/config/db.config.ts`, actualmente
-con `rejectUnauthorized: false`, y validar los límites por IP detrás del proxy de Cloudflare.
+**Despliegue de pruebas:** usuarios y sesiones siguen en memoria y se pierden al reiniciar, suspender
+o actualizar. Se acepta esta limitación para las pruebas del equipo sin usuarios reales; la persistencia
+queda a cargo del equipo antes del uso real. También se debe revisar TLS en `src/config/db.config.ts`,
+actualmente con `rejectUnauthorized: false`, y validar los límites por IP detrás del proxy de Cloudflare.
+
+La API de pruebas está publicada en https://invernadero-api.jair77253.workers.dev.
 
 ## 1. Verificar la imagen local
 
@@ -70,7 +72,7 @@ arranque nuevamente para recibirlo.
 El primer aprovisionamiento puede tardar varios minutos. Comprobar la URL publicada y una petición que
 llegue a NestJS. Un despliegue exitoso del Worker no demuestra por sí solo que la imagen haya arrancado.
 
-## 4. Automatizar desde main cuando la persistencia esté lista
+## 4. Automatizar el despliegue de pruebas desde main
 
 En Cloudflare: Workers & Pages → invernadero-api → Settings → Builds, conectar GitHub o GitLab:
 
@@ -78,7 +80,11 @@ En Cloudflare: Workers & Pages → invernadero-api → Settings → Builds, cone
 - Rama de producción: `main`.
 - Comando de construcción: `npm run cloudflare:verify`.
 - Comando de despliegue: `npm run cloudflare:deploy`.
-- Usar Node.js 24 en el entorno de construcción.
+- Usar la versión de Node.js indicada en `.node-version`.
+- Deshabilitar Preview builds para evitar versiones parciales del Worker sin actualizar la imagen.
+
+La configuración de Cloudflare debe estar integrada en `main` antes de activar la primera construcción.
+En GitHub, la aplicación Cloudflare Workers and Pages debe tener acceso a `Grizzly-Q/invernadero__server`.
 
 Workers Builds instala las dependencias; `npm ci` permite reproducirlas desde el lockfile.
 La verificación compila NestJS, ejecuta pruebas unitarias y comprueba tipos del Worker.
