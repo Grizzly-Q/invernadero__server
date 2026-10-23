@@ -21,6 +21,7 @@ Antes de arrancar, completar `DATABASE_URL` y `JWT_SECRET` en `.env`. Consultar 
 - [Autorización](src/auth/authorization.md).
 - [Usuarios](src/users/README.md).
 - [Base de datos](src/db/README.md).
+- [Preparación y despliegue con Cloudflare Containers](docs/cloudflare.md).
 
 ## Verificación
 

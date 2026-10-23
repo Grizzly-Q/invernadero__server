@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "invernadero-api",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-10-23",
+  "containers": [
+    {
+      "class_name": "InvernaderoContainer",
+      "image": "./Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 1,
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "API", "class_name": "InvernaderoContainer" }],
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["InvernaderoContainer"] },
+  ],
+  "vars": {
+    "JWT_ISSUER": "invernadero-api",
+    "JWT_AUDIENCE": "invernadero-android",
+    "JWT_ACCESS_TTL_SECONDS": "900",
+  },
+}
