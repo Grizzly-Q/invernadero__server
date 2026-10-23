@@ -85,6 +85,10 @@ En Cloudflare: Workers & Pages → invernadero-api → Settings → Builds, cone
 
 La configuración de Cloudflare debe estar integrada en `main` antes de activar la primera construcción.
 En GitHub, la aplicación Cloudflare Workers and Pages debe tener acceso a `Grizzly-Q/invernadero__server`.
+La integración ya está conectada a ese repositorio y a `main`. Workers Builds utiliza el token dedicado
+`invernadero-api Workers Builds`, limitado a esta cuenta, para ejecutar los comandos anteriores cuando
+se publique un nuevo commit en la rama de producción. El historial de Builds y el estado del despliegue
+se consultan en la pestaña Deployments del Worker.
 
 Workers Builds instala las dependencias; `npm ci` permite reproducirlas desde el lockfile.
 La verificación compila NestJS, ejecuta pruebas unitarias y comprueba tipos del Worker.
