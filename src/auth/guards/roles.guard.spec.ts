@@ -22,17 +22,12 @@ class RestrictedController {
     return true;
   }
 
-  @Roles(Role.CONTROLLER)
-  controller(this: void) {
-    return true;
-  }
-
-  @Roles(Role.OPERATOR, Role.CONTROLLER)
+  @Roles(Role.OPERATOR)
   shared(this: void) {
     return true;
   }
 
-  @Roles(Role.ADMIN, Role.OPERATOR, Role.CONTROLLER)
+  @Roles(Role.ADMIN, Role.OPERATOR)
   all(this: void) {
     return true;
   }
@@ -58,7 +53,6 @@ describe('Autorización por roles', () => {
   const individualRoutes = [
     { method: 'admin', allowed: Role.ADMIN },
     { method: 'operator', allowed: Role.OPERATOR },
-    { method: 'controller', allowed: Role.CONTROLLER },
   ] as const;
 
   describe.each(individualRoutes)(
@@ -79,8 +73,8 @@ describe('Autorización por roles', () => {
     },
   );
 
-  it.each([Role.OPERATOR, Role.CONTROLLER])(
-    'acepta %s cuando la ruta admite Operador o Controlador',
+  it.each([Role.OPERATOR])(
+    'acepta %s cuando la ruta admite Operador',
     (role) => {
       expect(guard.canActivate(context('shared', role))).toBe(true);
     },
@@ -93,7 +87,7 @@ describe('Autorización por roles', () => {
   });
 
   it.each(Object.values(Role))(
-    'admite %s cuando se declaran los tres roles',
+    'admite %s cuando se declaran ambos roles',
     (role) => {
       expect(guard.canActivate(context('all', role))).toBe(true);
     },
@@ -107,7 +101,7 @@ describe('Autorización por roles', () => {
   });
 
   it('permite cualquier rol autenticado cuando el método declara una lista vacía', () => {
-    expect(guard.canActivate(context('authenticated', Role.CONTROLLER))).toBe(
+    expect(guard.canActivate(context('authenticated', Role.OPERATOR))).toBe(
       true,
     );
   });

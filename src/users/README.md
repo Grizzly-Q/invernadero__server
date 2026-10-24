@@ -2,6 +2,8 @@
 
 `UsersService` crea y consulta usuarios mediante un almacén temporal en memoria. Cada usuario tiene identificador, nombre, correo normalizado, un rol y un hash de contraseña reservado al servidor.
 
+Los roles de usuario son `ADMIN` y `OPERATOR`. Los equipos ESP32 se separan en el [módulo controllers](../controllers/README.md); no se registran como usuarios.
+
 ## Comportamiento actual
 
 - El correo se recorta y convierte a minúsculas antes de buscarlo o guardarlo.

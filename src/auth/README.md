@@ -2,15 +2,17 @@
 
 La API utiliza un JWT de acceso para identificar al usuario. Registro e inicio de sesión devuelven el token; las solicitudes protegidas lo envían como Bearer.
 
+Los ESP32 utilizan [credenciales independientes](../controllers/README.md); no se registran como usuarios ni usan sus JWT.
+
 ## Endpoints y contrato
 
-| Método | Ruta | Acceso | Resultado |
-| --- | --- | --- | --- |
-| GET | `/` | Público | Bienvenida |
-| POST | `/auth/register` | Público | Registro y JWT (201) |
-| POST | `/auth/login` | Público | Nueva sesión y JWT (200) |
-| GET | `/auth/me` | JWT Bearer | Perfil autenticado (200) |
-| POST | `/auth/logout` | JWT Bearer | Revoca la sesión actual (204) |
+| Método | Ruta             | Acceso     | Resultado                     |
+| ------ | ---------------- | ---------- | ----------------------------- |
+| GET    | `/`              | Público    | Bienvenida                    |
+| POST   | `/auth/register` | Público    | Registro y JWT (201)          |
+| POST   | `/auth/login`    | Público    | Nueva sesión y JWT (200)      |
+| GET    | `/auth/me`       | JWT Bearer | Perfil autenticado (200)      |
+| POST   | `/auth/logout`   | JWT Bearer | Revoca la sesión actual (204) |
 
 Registro:
 
