@@ -1,5 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { databaseOptions } from '../db/database-options';
 
 /**
  * Construye las opciones de conexión PostgreSQL utilizadas por TypeORM.
@@ -9,14 +10,8 @@ import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
  */
 export function dbConfig(config: ConfigService): TypeOrmModuleOptions {
   return {
-    type: 'postgres',
-    url: config.getOrThrow<string>('DATABASE_URL'),
+    ...databaseOptions(config.getOrThrow<string>('DATABASE_URL')),
     // Incluye las entidades registradas mediante TypeOrmModule.forFeature().
     autoLoadEntities: true,
-    // Evita cambios automáticos en la estructura de las tablas existentes.
-    synchronize: false,
-    poolSize: 3,
-    // Cifra la conexión; la validación del certificado permanece deshabilitada.
-    ssl: { rejectUnauthorized: false },
   };
 }

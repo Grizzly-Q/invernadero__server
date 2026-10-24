@@ -10,6 +10,7 @@ La API se conecta a PostgreSQL de Supabase mediante TypeORM y el driver `pg`. No
 - `autoLoadEntities: true`: incorpora las entidades registradas con `TypeOrmModule.forFeature()`; no descubre tablas automáticamente.
 - `synchronize: false`: evita modificar automáticamente la estructura de las tablas. Los cambios deben aplicarse mediante SQL o migraciones.
 - `poolSize: 3`: hasta tres conexiones por instancia de la API.
+- `migrationsRun: false`: las migraciones se ejecutan explícitamente mediante la CLI, nunca al arrancar la API.
 - `ssl: { rejectUnauthorized: false }`: cifra la conexión, pero no valida el certificado del servidor. La validación del certificado queda pendiente para producción.
 
 ## Consulta de prueba
@@ -25,6 +26,10 @@ Devuelve la hora y el número de filas. Requiere una conexión válida, que exis
 
 ## Alcance actual
 
-La consulta usa `DataSource.query()`. El registro y el inicio de sesión todavía utilizan usuarios en memoria: no insertan ni consultan la tabla `Usuario`. Antes de completar la persistencia hay que definir las entidades y conectar los servicios con sus repositorios.
+Las entidades de invernaderos, controladores, credenciales, sensores y mediciones tienen mapeo explícito a las tablas PostgreSQL. Las entidades se comparten con la CLI de migraciones. Las tablas restantes aún no están modeladas como entidades.
+
+La [guía de migraciones](migrations/README.md) documenta el esquema inicial, los cambios, la conservación del historial, los comandos de ejecución y las limitaciones de reversión.
+
+La consulta usa `DataSource.query()`. El registro y el inicio de sesión todavía utilizan usuarios en memoria: no insertan ni consultan la tabla `Usuario`. El aprovisionamiento de ESP32 y la recepción de telemetría utilizan repositorios y transacciones persistentes. Consultar [controllers](../controllers/README.md) y [telemetría](../telemetry/README.md).
 
 [Configuración del entorno](../config/README.md) · [Usuarios](../users/README.md) · [Volver al README principal](../../README.md).

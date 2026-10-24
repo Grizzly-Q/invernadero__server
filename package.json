@@ -7,6 +7,16 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "migration:create": "typeorm migration:create",
+    "migration:test": "ts-node test/migrations.integration.ts",
+    "controllers:test": "ts-node test/controllers.integration.ts",
+    "monitoring:test": "ts-node test/monitoring.integration.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d src/db/data-source.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/db/data-source.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/db/data-source.ts",
+    "migration:show:prod": "typeorm migration:show -d dist/db/data-source.js",
+    "migration:run:prod": "typeorm migration:run -d dist/db/data-source.js",
+    "migration:revert:prod": "typeorm migration:revert -d dist/db/data-source.js",
     "cloudflare:check": "tsc --project cloudflare/tsconfig.json",
     "cloudflare:verify": "npm run build && npm test -- --runInBand && npm run cloudflare:check",
     "cloudflare:dev": "wrangler dev",
@@ -21,7 +31,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -36,7 +46,9 @@
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "typeorm": "^1.1.2"
+    "socket.io": "^4.8.4",
+    "typeorm": "^1.1.2",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@cloudflare/containers": "^0.3.7",
@@ -50,12 +62,14 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.19.2",
     "@types/supertest": "^7.0.0",
+    "@types/ws": "^8.18.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jest": "^30.0.0",
     "prettier": "^3.4.2",
+    "socket.io-client": "^4.8.4",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",

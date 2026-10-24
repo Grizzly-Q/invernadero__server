@@ -1,0 +1,1001 @@
+{
+  "fecha": "2026-10-23",
+  "descripcion": "Referencia estructural anterior a las migraciones; no contiene registros ni credenciales.",
+  "columnas": [
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "idConfiguracionRiego_ConfiguracionRiego",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "idInvernadero_ConfiguracionRiego",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "nombre_ConfiguracionRiego",
+      "tipo": "character varying(100)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "humedadActivacion",
+      "tipo": "numeric(5,2)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "tipoProgramacion",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "activa",
+      "tipo": "boolean",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "false"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "duracionRiego",
+      "tipo": "integer",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "columna": "intervaloTiempo",
+      "tipo": "integer",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Controlador",
+      "columna": "idControlador_Controlador",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Controlador",
+      "columna": "idInvernadero_Controlador",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Controlador",
+      "columna": "estadoConexion_Controlador",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "'Desconectado'::character varying"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "idEjecucionRiego",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "idInvernadero_EjecucionRiego",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "idUsuario_EjecucionRiego",
+      "tipo": "bigint",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "idConfiguracionRiego_EjecucionRiego",
+      "tipo": "bigint",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "fechaHoraInicio",
+      "tipo": "timestamp without time zone",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "CURRENT_TIMESTAMP"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "fechaHoraFin",
+      "tipo": "timestamp without time zone",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "duracionProgramada",
+      "tipo": "integer",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "modoEjecucion",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "columna": "estadoRiego",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "'EnEjecucion'::character varying"
+    },
+    {
+      "tabla": "HorarioRiego",
+      "columna": "idConfiguracionRiego_HorarioRiego",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "HorarioRiego",
+      "columna": "hora",
+      "tipo": "time without time zone",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "idInvernadero_Invernadero",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "nombre_Invernadero",
+      "tipo": "character varying(100)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "ubicacion",
+      "tipo": "character varying(200)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "largo",
+      "tipo": "numeric(8,2)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "ancho",
+      "tipo": "numeric(8,2)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "alto",
+      "tipo": "numeric(8,2)",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "descripcion",
+      "tipo": "character varying(500)",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "fechaCreacion",
+      "tipo": "timestamp without time zone",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "CURRENT_TIMESTAMP"
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "estado_Invernadero",
+      "tipo": "character varying(20)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "'Activo'::character varying"
+    },
+    {
+      "tabla": "Invernadero",
+      "columna": "modoOperacion",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "'Manual'::character varying"
+    },
+    {
+      "tabla": "LimiteSensor",
+      "columna": "idSensor_LimiteSensor",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "LimiteSensor",
+      "columna": "limiteMinimo",
+      "tipo": "numeric(7,2)",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "LimiteSensor",
+      "columna": "limiteMaximo",
+      "tipo": "numeric(7,2)",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Medicion",
+      "columna": "idSensor_Medicion",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Medicion",
+      "columna": "fechaHora",
+      "tipo": "timestamp without time zone",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Medicion",
+      "columna": "valor",
+      "tipo": "numeric(7,2)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "idNotificacion",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "idSensor_Notificacion",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "idUsuarioAtencion",
+      "tipo": "bigint",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "idUsuarioResolucion",
+      "tipo": "bigint",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "tipoNotificacion",
+      "tipo": "character varying(50)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "valorDetectado",
+      "tipo": "numeric(7,2)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "fechaHoraGeneracion",
+      "tipo": "timestamp without time zone",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "CURRENT_TIMESTAMP"
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "estado_Notificacion",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "'Pendiente'::character varying"
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "fechaHoraAtencion",
+      "tipo": "timestamp without time zone",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Notificacion",
+      "columna": "fechaHoraResolucion",
+      "tipo": "timestamp without time zone",
+      "obligatoria": false,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Sensor",
+      "columna": "idSensor_Sensor",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Sensor",
+      "columna": "idControlador_Sensor",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Sensor",
+      "columna": "tipoSensor",
+      "tipo": "character varying(30)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Sensor",
+      "columna": "unidadMedida",
+      "tipo": "character varying(10)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Sensor",
+      "columna": "estadoConexion_Sensor",
+      "tipo": "character varying(15)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "'Desconectado'::character varying"
+    },
+    {
+      "tabla": "Usuario",
+      "columna": "idUsuario_Usuario",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "d",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Usuario",
+      "columna": "nombreUsuario",
+      "tipo": "character varying(80)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Usuario",
+      "columna": "contrasena",
+      "tipo": "character varying(255)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "Usuario",
+      "columna": "rol",
+      "tipo": "character varying(20)",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "columna": "idUsuario_UsuarioInvernadero",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "columna": "idInvernadero_UsuarioInvernadero",
+      "tipo": "bigint",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": null
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "columna": "fechaAsignacion",
+      "tipo": "timestamp without time zone",
+      "obligatoria": true,
+      "identidad": "",
+      "valor_por_defecto": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "restricciones": [
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "CK_ConfiguracionRiego_Duracion",
+      "tipo": "c",
+      "definicion": "CHECK ((\"duracionRiego\" > 0))"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "CK_ConfiguracionRiego_Humedad",
+      "tipo": "c",
+      "definicion": "CHECK (((\"humedadActivacion\" >= (0)::numeric) AND (\"humedadActivacion\" <= (100)::numeric)))"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "CK_ConfiguracionRiego_Intervalo",
+      "tipo": "c",
+      "definicion": "CHECK (((((\"tipoProgramacion\")::text = 'Intervalo'::text) AND (\"intervaloTiempo\" IS NOT NULL) AND (\"intervaloTiempo\" > 0)) OR (((\"tipoProgramacion\")::text = 'Horario'::text) AND (\"intervaloTiempo\" IS NULL))))"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "CK_ConfiguracionRiego_Tipo",
+      "tipo": "c",
+      "definicion": "CHECK (((\"tipoProgramacion\")::text = ANY ((ARRAY['Intervalo'::character varying, 'Horario'::character varying])::text[])))"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "ConfiguracionRiego_idInvernadero_ConfiguracionRiego_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idInvernadero_ConfiguracionRiego\") REFERENCES \"Invernadero\"(\"idInvernadero_Invernadero\")"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "ConfiguracionRiego_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idConfiguracionRiego_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "UQ_ConfiguracionRiego_Id_Invernadero",
+      "tipo": "u",
+      "definicion": "UNIQUE (\"idConfiguracionRiego_ConfiguracionRiego\", \"idInvernadero_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "Controlador",
+      "nombre": "CK_Controlador_Conexion",
+      "tipo": "c",
+      "definicion": "CHECK (((\"estadoConexion_Controlador\")::text = ANY ((ARRAY['Conectado'::character varying, 'Desconectado'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Controlador",
+      "nombre": "Controlador_idInvernadero_Controlador_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idInvernadero_Controlador\") REFERENCES \"Invernadero\"(\"idInvernadero_Invernadero\")"
+    },
+    {
+      "tabla": "Controlador",
+      "nombre": "Controlador_idInvernadero_Controlador_key",
+      "tipo": "u",
+      "definicion": "UNIQUE (\"idInvernadero_Controlador\")"
+    },
+    {
+      "tabla": "Controlador",
+      "nombre": "Controlador_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idControlador_Controlador\")"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "CK_EjecucionRiego_Duracion",
+      "tipo": "c",
+      "definicion": "CHECK (((\"duracionProgramada\" IS NULL) OR (\"duracionProgramada\" > 0)))"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "CK_EjecucionRiego_Estado",
+      "tipo": "c",
+      "definicion": "CHECK (((\"estadoRiego\")::text = ANY ((ARRAY['EnEjecucion'::character varying, 'Finalizado'::character varying, 'Cancelado'::character varying])::text[])))"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "CK_EjecucionRiego_Fechas",
+      "tipo": "c",
+      "definicion": "CHECK (((((\"estadoRiego\")::text = 'EnEjecucion'::text) AND (\"fechaHoraFin\" IS NULL)) OR (((\"estadoRiego\")::text = ANY ((ARRAY['Finalizado'::character varying, 'Cancelado'::character varying])::text[])) AND (\"fechaHoraFin\" IS NOT NULL) AND (\"fechaHoraFin\" >= \"fechaHoraInicio\"))))"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "CK_EjecucionRiego_Modo",
+      "tipo": "c",
+      "definicion": "CHECK (((\"modoEjecucion\")::text = ANY ((ARRAY['Manual'::character varying, 'Automatico'::character varying])::text[])))"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "CK_EjecucionRiego_Origen",
+      "tipo": "c",
+      "definicion": "CHECK (((((\"modoEjecucion\")::text = 'Manual'::text) AND (\"idUsuario_EjecucionRiego\" IS NOT NULL) AND (\"idConfiguracionRiego_EjecucionRiego\" IS NULL)) OR (((\"modoEjecucion\")::text = 'Automatico'::text) AND (\"idUsuario_EjecucionRiego\" IS NULL) AND (\"idConfiguracionRiego_EjecucionRiego\" IS NOT NULL))))"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "EjecucionRiego_idInvernadero_EjecucionRiego_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idInvernadero_EjecucionRiego\") REFERENCES \"Invernadero\"(\"idInvernadero_Invernadero\")"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "EjecucionRiego_idUsuario_EjecucionRiego_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idUsuario_EjecucionRiego\") REFERENCES \"Usuario\"(\"idUsuario_Usuario\")"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "EjecucionRiego_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idEjecucionRiego\")"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "FK_EjecucionRiego_Configuracion",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idConfiguracionRiego_EjecucionRiego\", \"idInvernadero_EjecucionRiego\") REFERENCES \"ConfiguracionRiego\"(\"idConfiguracionRiego_ConfiguracionRiego\", \"idInvernadero_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "HorarioRiego",
+      "nombre": "HorarioRiego_idConfiguracionRiego_HorarioRiego_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idConfiguracionRiego_HorarioRiego\") REFERENCES \"ConfiguracionRiego\"(\"idConfiguracionRiego_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "HorarioRiego",
+      "nombre": "PK_HorarioRiego",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idConfiguracionRiego_HorarioRiego\", hora)"
+    },
+    {
+      "tabla": "Invernadero",
+      "nombre": "CK_Invernadero_Dimensiones",
+      "tipo": "c",
+      "definicion": "CHECK (((largo > (0)::numeric) AND (ancho > (0)::numeric) AND ((alto IS NULL) OR (alto > (0)::numeric))))"
+    },
+    {
+      "tabla": "Invernadero",
+      "nombre": "CK_Invernadero_Estado",
+      "tipo": "c",
+      "definicion": "CHECK (((\"estado_Invernadero\")::text = ANY ((ARRAY['Activo'::character varying, 'EnMantenimiento'::character varying, 'Desactivado'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Invernadero",
+      "nombre": "CK_Invernadero_Modo",
+      "tipo": "c",
+      "definicion": "CHECK (((\"modoOperacion\")::text = ANY ((ARRAY['Manual'::character varying, 'Automatico'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Invernadero",
+      "nombre": "Invernadero_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idInvernadero_Invernadero\")"
+    },
+    {
+      "tabla": "LimiteSensor",
+      "nombre": "CK_LimiteSensor_Alguno",
+      "tipo": "c",
+      "definicion": "CHECK (((\"limiteMinimo\" IS NOT NULL) OR (\"limiteMaximo\" IS NOT NULL)))"
+    },
+    {
+      "tabla": "LimiteSensor",
+      "nombre": "CK_LimiteSensor_Orden",
+      "tipo": "c",
+      "definicion": "CHECK (((\"limiteMinimo\" IS NULL) OR (\"limiteMaximo\" IS NULL) OR (\"limiteMinimo\" <= \"limiteMaximo\")))"
+    },
+    {
+      "tabla": "LimiteSensor",
+      "nombre": "LimiteSensor_idSensor_LimiteSensor_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idSensor_LimiteSensor\") REFERENCES \"Sensor\"(\"idSensor_Sensor\")"
+    },
+    {
+      "tabla": "LimiteSensor",
+      "nombre": "LimiteSensor_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idSensor_LimiteSensor\")"
+    },
+    {
+      "tabla": "Medicion",
+      "nombre": "Medicion_idSensor_Medicion_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idSensor_Medicion\") REFERENCES \"Sensor\"(\"idSensor_Sensor\")"
+    },
+    {
+      "tabla": "Medicion",
+      "nombre": "PK_Medicion",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idSensor_Medicion\", \"fechaHora\")"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "CK_Notificacion_Atencion",
+      "tipo": "c",
+      "definicion": "CHECK (((\"idUsuarioAtencion\" IS NULL) = (\"fechaHoraAtencion\" IS NULL)))"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "CK_Notificacion_Estado",
+      "tipo": "c",
+      "definicion": "CHECK (((\"estado_Notificacion\")::text = ANY ((ARRAY['Pendiente'::character varying, 'Atendida'::character varying, 'Resuelta'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "CK_Notificacion_Fechas",
+      "tipo": "c",
+      "definicion": "CHECK ((((\"fechaHoraAtencion\" IS NULL) OR (\"fechaHoraAtencion\" >= \"fechaHoraGeneracion\")) AND ((\"fechaHoraResolucion\" IS NULL) OR (\"fechaHoraResolucion\" >= \"fechaHoraGeneracion\")) AND ((\"fechaHoraResolucion\" IS NULL) OR (\"fechaHoraAtencion\" IS NULL) OR (\"fechaHoraResolucion\" >= \"fechaHoraAtencion\"))))"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "CK_Notificacion_Resolucion",
+      "tipo": "c",
+      "definicion": "CHECK (((\"idUsuarioResolucion\" IS NULL) = (\"fechaHoraResolucion\" IS NULL)))"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "CK_Notificacion_Transicion",
+      "tipo": "c",
+      "definicion": "CHECK (((((\"estado_Notificacion\")::text = 'Pendiente'::text) AND (\"fechaHoraAtencion\" IS NULL) AND (\"fechaHoraResolucion\" IS NULL)) OR (((\"estado_Notificacion\")::text = 'Atendida'::text) AND (\"fechaHoraAtencion\" IS NOT NULL) AND (\"fechaHoraResolucion\" IS NULL)) OR (((\"estado_Notificacion\")::text = 'Resuelta'::text) AND (\"fechaHoraResolucion\" IS NOT NULL))))"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "Notificacion_idSensor_Notificacion_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idSensor_Notificacion\") REFERENCES \"Sensor\"(\"idSensor_Sensor\")"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "Notificacion_idUsuarioAtencion_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idUsuarioAtencion\") REFERENCES \"Usuario\"(\"idUsuario_Usuario\")"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "Notificacion_idUsuarioResolucion_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idUsuarioResolucion\") REFERENCES \"Usuario\"(\"idUsuario_Usuario\")"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "Notificacion_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idNotificacion\")"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "CK_Sensor_Conexion",
+      "tipo": "c",
+      "definicion": "CHECK (((\"estadoConexion_Sensor\")::text = ANY ((ARRAY['Conectado'::character varying, 'Desconectado'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "CK_Sensor_Tipo",
+      "tipo": "c",
+      "definicion": "CHECK (((\"tipoSensor\")::text = ANY ((ARRAY['HumedadAmbiental'::character varying, 'HumedadSuelo'::character varying, 'NivelAgua'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "Sensor_idControlador_Sensor_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idControlador_Sensor\") REFERENCES \"Controlador\"(\"idControlador_Controlador\")"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "Sensor_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idSensor_Sensor\")"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "UQ_Sensor_Controlador_Tipo",
+      "tipo": "u",
+      "definicion": "UNIQUE (\"idControlador_Sensor\", \"tipoSensor\")"
+    },
+    {
+      "tabla": "Usuario",
+      "nombre": "CK_Usuario_Nombre",
+      "tipo": "c",
+      "definicion": "CHECK ((btrim((\"nombreUsuario\")::text) <> ''::text))"
+    },
+    {
+      "tabla": "Usuario",
+      "nombre": "CK_Usuario_Rol",
+      "tipo": "c",
+      "definicion": "CHECK (((rol)::text = ANY ((ARRAY['Administrador'::character varying, 'Operador'::character varying])::text[])))"
+    },
+    {
+      "tabla": "Usuario",
+      "nombre": "Usuario_nombreUsuario_key",
+      "tipo": "u",
+      "definicion": "UNIQUE (\"nombreUsuario\")"
+    },
+    {
+      "tabla": "Usuario",
+      "nombre": "Usuario_pkey",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idUsuario_Usuario\")"
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "nombre": "PK_UsuarioInvernadero",
+      "tipo": "p",
+      "definicion": "PRIMARY KEY (\"idUsuario_UsuarioInvernadero\", \"idInvernadero_UsuarioInvernadero\")"
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "nombre": "UsuarioInvernadero_idInvernadero_UsuarioInvernadero_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idInvernadero_UsuarioInvernadero\") REFERENCES \"Invernadero\"(\"idInvernadero_Invernadero\")"
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "nombre": "UsuarioInvernadero_idUsuario_UsuarioInvernadero_fkey",
+      "tipo": "f",
+      "definicion": "FOREIGN KEY (\"idUsuario_UsuarioInvernadero\") REFERENCES \"Usuario\"(\"idUsuario_Usuario\")"
+    }
+  ],
+  "indices": [
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "ConfiguracionRiego_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"ConfiguracionRiego_pkey\" ON public.\"ConfiguracionRiego\" USING btree (\"idConfiguracionRiego_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "IX_ConfiguracionRiego_Invernadero",
+      "definicion": "CREATE INDEX \"IX_ConfiguracionRiego_Invernadero\" ON public.\"ConfiguracionRiego\" USING btree (\"idInvernadero_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "UQ_ConfiguracionRiego_Activa",
+      "definicion": "CREATE UNIQUE INDEX \"UQ_ConfiguracionRiego_Activa\" ON public.\"ConfiguracionRiego\" USING btree (\"idInvernadero_ConfiguracionRiego\") WHERE activa"
+    },
+    {
+      "tabla": "ConfiguracionRiego",
+      "nombre": "UQ_ConfiguracionRiego_Id_Invernadero",
+      "definicion": "CREATE UNIQUE INDEX \"UQ_ConfiguracionRiego_Id_Invernadero\" ON public.\"ConfiguracionRiego\" USING btree (\"idConfiguracionRiego_ConfiguracionRiego\", \"idInvernadero_ConfiguracionRiego\")"
+    },
+    {
+      "tabla": "Controlador",
+      "nombre": "Controlador_idInvernadero_Controlador_key",
+      "definicion": "CREATE UNIQUE INDEX \"Controlador_idInvernadero_Controlador_key\" ON public.\"Controlador\" USING btree (\"idInvernadero_Controlador\")"
+    },
+    {
+      "tabla": "Controlador",
+      "nombre": "Controlador_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"Controlador_pkey\" ON public.\"Controlador\" USING btree (\"idControlador_Controlador\")"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "EjecucionRiego_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"EjecucionRiego_pkey\" ON public.\"EjecucionRiego\" USING btree (\"idEjecucionRiego\")"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "IX_EjecucionRiego_Configuracion",
+      "definicion": "CREATE INDEX \"IX_EjecucionRiego_Configuracion\" ON public.\"EjecucionRiego\" USING btree (\"idConfiguracionRiego_EjecucionRiego\") WHERE (\"idConfiguracionRiego_EjecucionRiego\" IS NOT NULL)"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "IX_EjecucionRiego_Invernadero_Fecha",
+      "definicion": "CREATE INDEX \"IX_EjecucionRiego_Invernadero_Fecha\" ON public.\"EjecucionRiego\" USING btree (\"idInvernadero_EjecucionRiego\", \"fechaHoraInicio\" DESC)"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "IX_EjecucionRiego_Usuario",
+      "definicion": "CREATE INDEX \"IX_EjecucionRiego_Usuario\" ON public.\"EjecucionRiego\" USING btree (\"idUsuario_EjecucionRiego\") WHERE (\"idUsuario_EjecucionRiego\" IS NOT NULL)"
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "nombre": "UQ_EjecucionRiego_EnEjecucion",
+      "definicion": "CREATE UNIQUE INDEX \"UQ_EjecucionRiego_EnEjecucion\" ON public.\"EjecucionRiego\" USING btree (\"idInvernadero_EjecucionRiego\") WHERE ((\"estadoRiego\")::text = 'EnEjecucion'::text)"
+    },
+    {
+      "tabla": "HorarioRiego",
+      "nombre": "PK_HorarioRiego",
+      "definicion": "CREATE UNIQUE INDEX \"PK_HorarioRiego\" ON public.\"HorarioRiego\" USING btree (\"idConfiguracionRiego_HorarioRiego\", hora)"
+    },
+    {
+      "tabla": "Invernadero",
+      "nombre": "Invernadero_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"Invernadero_pkey\" ON public.\"Invernadero\" USING btree (\"idInvernadero_Invernadero\")"
+    },
+    {
+      "tabla": "LimiteSensor",
+      "nombre": "LimiteSensor_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"LimiteSensor_pkey\" ON public.\"LimiteSensor\" USING btree (\"idSensor_LimiteSensor\")"
+    },
+    {
+      "tabla": "Medicion",
+      "nombre": "IX_Medicion_FechaHora",
+      "definicion": "CREATE INDEX \"IX_Medicion_FechaHora\" ON public.\"Medicion\" USING btree (\"fechaHora\" DESC)"
+    },
+    {
+      "tabla": "Medicion",
+      "nombre": "PK_Medicion",
+      "definicion": "CREATE UNIQUE INDEX \"PK_Medicion\" ON public.\"Medicion\" USING btree (\"idSensor_Medicion\", \"fechaHora\")"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "IX_Notificacion_Atencion",
+      "definicion": "CREATE INDEX \"IX_Notificacion_Atencion\" ON public.\"Notificacion\" USING btree (\"idUsuarioAtencion\") WHERE (\"idUsuarioAtencion\" IS NOT NULL)"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "IX_Notificacion_Pendiente",
+      "definicion": "CREATE INDEX \"IX_Notificacion_Pendiente\" ON public.\"Notificacion\" USING btree (\"fechaHoraGeneracion\" DESC) WHERE ((\"estado_Notificacion\")::text = 'Pendiente'::text)"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "IX_Notificacion_Resolucion",
+      "definicion": "CREATE INDEX \"IX_Notificacion_Resolucion\" ON public.\"Notificacion\" USING btree (\"idUsuarioResolucion\") WHERE (\"idUsuarioResolucion\" IS NOT NULL)"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "IX_Notificacion_Sensor_Fecha",
+      "definicion": "CREATE INDEX \"IX_Notificacion_Sensor_Fecha\" ON public.\"Notificacion\" USING btree (\"idSensor_Notificacion\", \"fechaHoraGeneracion\" DESC)"
+    },
+    {
+      "tabla": "Notificacion",
+      "nombre": "Notificacion_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"Notificacion_pkey\" ON public.\"Notificacion\" USING btree (\"idNotificacion\")"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "Sensor_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"Sensor_pkey\" ON public.\"Sensor\" USING btree (\"idSensor_Sensor\")"
+    },
+    {
+      "tabla": "Sensor",
+      "nombre": "UQ_Sensor_Controlador_Tipo",
+      "definicion": "CREATE UNIQUE INDEX \"UQ_Sensor_Controlador_Tipo\" ON public.\"Sensor\" USING btree (\"idControlador_Sensor\", \"tipoSensor\")"
+    },
+    {
+      "tabla": "Usuario",
+      "nombre": "Usuario_nombreUsuario_key",
+      "definicion": "CREATE UNIQUE INDEX \"Usuario_nombreUsuario_key\" ON public.\"Usuario\" USING btree (\"nombreUsuario\")"
+    },
+    {
+      "tabla": "Usuario",
+      "nombre": "Usuario_pkey",
+      "definicion": "CREATE UNIQUE INDEX \"Usuario_pkey\" ON public.\"Usuario\" USING btree (\"idUsuario_Usuario\")"
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "nombre": "IX_UsuarioInvernadero_Invernadero",
+      "definicion": "CREATE INDEX \"IX_UsuarioInvernadero_Invernadero\" ON public.\"UsuarioInvernadero\" USING btree (\"idInvernadero_UsuarioInvernadero\")"
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "nombre": "PK_UsuarioInvernadero",
+      "definicion": "CREATE UNIQUE INDEX \"PK_UsuarioInvernadero\" ON public.\"UsuarioInvernadero\" USING btree (\"idUsuario_UsuarioInvernadero\", \"idInvernadero_UsuarioInvernadero\")"
+    }
+  ],
+  "seguridad": [
+    {
+      "tabla": "ConfiguracionRiego",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "Controlador",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "EjecucionRiego",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "HorarioRiego",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "Invernadero",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "LimiteSensor",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "Medicion",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "Notificacion",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "Sensor",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "Usuario",
+      "rls": true,
+      "forzar_rls": false
+    },
+    {
+      "tabla": "UsuarioInvernadero",
+      "rls": true,
+      "forzar_rls": false
+    }
+  ],
+  "politicas": []
+}

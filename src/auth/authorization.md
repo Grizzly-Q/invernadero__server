@@ -1,16 +1,19 @@
 # Autorización, roles y permisos
 
-La autenticación comprueba quién es el usuario. La autorización decide si puede acceder a un endpoint. `JwtAuthGuard` y `RolesGuard` están registrados globalmente en `AuthModule`: no necesitas repetir `@UseGuards` en cada ruta.
+La autenticación comprueba quién es el usuario. La autorización decide si puede acceder a un endpoint. `AuthenticationGuard` y `RolesGuard` están registrados globalmente en `AuthModule`: no necesitas repetir `@UseGuards` en cada ruta.
+
+El guard global exige JWT de usuario por defecto. `@DeviceOnly()` selecciona una credencial ESP32 y guarda su identidad en `request.controller`. No combinarlo con `@Public()` ni con roles humanos. La administración exige `ADMIN` y la telemetría exige identidad de equipo. Consultar [controllers](../controllers/README.md).
+
+Los transportes persistentes no pasan por los guards HTTP: el monitoreo de [telemetry](../telemetry/monitoring/README.md) verifica explícitamente JWT, credenciales y asignaciones, y los revalida durante la conexión. Los Operadores necesitan un vínculo administrativo con su Usuario PostgreSQL y una asignación válida en `UsuarioInvernadero`; nunca se les concede acceso a todos los invernaderos por tener un JWT.
 
 ## Roles disponibles
 
-Cada usuario tiene un único rol asignado por el servidor:
+Cada usuario humano tiene un único rol asignado por el servidor. Los ESP32 pertenecen al módulo `controllers` y no tienen un rol de usuario:
 
-| Nombre | Constante | Valor en JSON |
-| --- | --- | --- |
-| Administrador | `Role.ADMIN` | `ADMIN` |
-| Operador | `Role.OPERATOR` | `OPERATOR` |
-| Controlador | `Role.CONTROLLER` | `CONTROLLER` |
+| Nombre        | Constante       | Valor en JSON |
+| ------------- | --------------- | ------------- |
+| Administrador | `Role.ADMIN`    | `ADMIN`       |
+| Operador      | `Role.OPERATOR` | `OPERATOR`    |
 
 El registro público asigna `OPERATOR` y rechaza el campo `role`. No hay jerarquía automática: el Administrador también debe estar incluido en la lista de roles permitidos.
 
@@ -21,7 +24,6 @@ Coloca uno de estos decoradores sobre el método del controlador:
 ```typescript
 @Roles(Role.ADMIN)
 @Roles(Role.OPERATOR)
-@Roles(Role.CONTROLLER)
 ```
 
 Las líneas anteriores son alternativas: usa una sola por método. Ejemplo de un controlador ubicado en `src/invernaderos/`:
@@ -41,30 +43,26 @@ export class InvernaderosController {
     return { message: 'Acceso de Administrador' };
   }
 
-  /** Permite a un Operador o a un Controlador. */
+  /** Permite a un Administrador o a un Operador. */
   @Get('monitoreo')
-  @Roles(Role.OPERATOR, Role.CONTROLLER)
+  @Roles(Role.ADMIN, Role.OPERATOR)
   monitoreo() {
-    return { message: 'Acceso de Operador o Controlador' };
+    return { message: 'Acceso de Administrador o Operador' };
   }
 }
 ```
 
 Registrar el controlador en su módulo para habilitar sus rutas. Estos ejemplos explican la sintaxis; no definen los permisos definitivos del negocio.
 
-## Permitir dos o tres roles
+## Permitir ambos roles
 
 Usa un solo decorador con todos los roles admitidos:
 
 ```typescript
-@Roles(Role.OPERATOR, Role.CONTROLLER)
+@Roles(Role.ADMIN, Role.OPERATOR)
 ```
 
-Significa Operador **o** Controlador; no exige ambos roles. Para incluir al Administrador:
-
-```typescript
-@Roles(Role.ADMIN, Role.OPERATOR, Role.CONTROLLER)
-```
+Significa Administrador **o** Operador; no exige ambos roles.
 
 No apiles varios `@Roles` sobre el mismo método: no acumulan sus listas.
 
@@ -81,7 +79,7 @@ El guard utiliza el rol actual obtenido por el servidor, no un rol enviado por A
 
 ## Asignación y límites
 
-El servidor puede asignar un rol con `UsersService.create(nombre, correo, contraseña, Role.CONTROLLER)`; para crear el Administrador inicial se usan las variables descritas en la [configuración](../config/README.md). Todavía no hay un endpoint para cambiar roles.
+El servidor puede asignar un rol con `UsersService.create(nombre, correo, contraseña, Role.ADMIN)`; para crear el Administrador inicial se usan las variables descritas en la [configuración](../config/README.md). Todavía no hay un endpoint para cambiar roles.
 
 Actualmente los permisos se expresan mediante listas de roles por endpoint. No existe un catálogo de permisos individuales ni políticas de PostgreSQL/Supabase generadas por estos roles. Los usuarios y sus roles siguen almacenados en memoria.
 

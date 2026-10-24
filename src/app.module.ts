@@ -8,6 +8,8 @@ import { authConfig } from './config/auth.config';
 import { dbConfig } from './config/db.config';
 import { DbModule } from './db/db.module';
 import { validateEnvironment } from './config/environment.validation';
+import { ControllersModule } from './controllers/controllers.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { validateEnvironment } from './config/environment.validation';
     }),
     AuthModule,
     DbModule,
+    ControllersModule,
+    TelemetryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
