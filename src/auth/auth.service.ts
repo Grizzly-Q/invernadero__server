@@ -48,13 +48,21 @@ export class AuthService {
     );
   }
 
-  /** Verifica credenciales sin distinguir públicamente correo inexistente de contraseña incorrecta. */
+  /** Verifica credenciales y exige un perfil vigente antes de abrir la sesión. */
   async login(dto: LoginDto): Promise<SessionTokens> {
     const user = await this.users.findByEmail(dto.email);
     const valid = await this.passwords.verify(dto.password, user?.passwordHash);
-    if (!user || !valid)
+
+    if (!user || !valid) {
       throw new UnauthorizedException('Credenciales incorrectas.');
-    return this.createSession((await this.users.findById(user.id))!);
+    }
+
+    const profile = await this.users.findById(user.id);
+    if (!profile) {
+      throw new UnauthorizedException('Credenciales incorrectas.');
+    }
+
+    return this.createSession(profile);
   }
 
   /** Valida firma, tipo y sesión persistente; consulta la cuenta persistente vigente; los permisos se verifican aparte por invernadero. */
