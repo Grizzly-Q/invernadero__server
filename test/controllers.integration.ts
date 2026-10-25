@@ -1,3 +1,4 @@
+import { UsersService } from '../src/users/users.service';
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
@@ -69,13 +70,15 @@ async function main(): Promise<void> {
           ignoreEnvFile: true,
           load: [
             () => ({
-              ADMIN_EMAIL: 'admin-prueba@example.com',
-              ADMIN_PASSWORD: 'Prueba-admin-segura-123',
               auth: {
                 secret: 'secreto-exclusivo-de-pruebas-con-32-bytes',
                 issuer: 'prueba-api',
                 audience: 'prueba-android',
                 accessTtl: 900,
+                refreshTtl: 604800,
+                webOrigins: ['http://localhost:5173'],
+                cookieSecure: false,
+                cookieSameSite: 'lax',
               },
             }),
           ],
@@ -93,6 +96,19 @@ async function main(): Promise<void> {
     });
     configureApp(app);
     await app.init();
+    // La cuenta administrativa es un dato ficticio de prueba, no se crea por variables del servidor.
+    await app
+      .get(UsersService)
+      .create(
+        'Administrador de prueba',
+        'admin-prueba@example.com',
+        'Prueba-admin-segura-123',
+      );
+    // Esta cuenta ficticia administra ambos invernaderos usados para probar recursos de equipos distintos.
+    await source.query(
+      `INSERT INTO ${schema}."UsuarioInvernadero" ("idUsuario_UsuarioInvernadero", "idInvernadero_UsuarioInvernadero", "rol_UsuarioInvernadero") SELECT u."idUsuario_Usuario", g."idInvernadero_Invernadero", 'ADMIN' FROM ${schema}."Usuario" u CROSS JOIN ${schema}."Invernadero" g WHERE u."correo_Usuario" = $1`,
+      ['admin-prueba@example.com'],
+    );
     const server = app.getHttpServer();
     const adminResponse = await request(server)
       .post('/auth/login')
@@ -117,7 +133,8 @@ async function main(): Promise<void> {
     await request(server)
       .get('/controllers')
       .set('Authorization', bearer(operator))
-      .expect(403);
+      .expect(200)
+      .expect({ items: [], nextBeforeId: null });
     await request(server)
       .post('/controllers')
       .set('Authorization', bearer(operator))
@@ -140,7 +157,7 @@ async function main(): Promise<void> {
       .post('/controllers')
       .set('Authorization', bearer(admin))
       .send({ greenhouseId: '999', name: 'Inexistente' })
-      .expect(404);
+      .expect(403);
     await request(server)
       .patch(`/controllers/${controller.id}`)
       .set('Authorization', bearer(admin))

@@ -19,7 +19,12 @@
   ],
   "vars": {
     "JWT_ISSUER": "invernadero-api",
-    "JWT_AUDIENCE": "invernadero-android",
+    "JWT_AUDIENCE": "invernadero-clientes",
     "JWT_ACCESS_TTL_SECONDS": "900",
+    "JWT_REFRESH_TTL_SECONDS": "604800",
+    // React se ejecuta siempre en localhost; la API remota recibe la cookie entre sitios.
+    "WEB_ORIGINS": "http://localhost:5173",
+    "COOKIE_SECURE": "true",
+    "COOKIE_SAME_SITE": "none",
   },
 }

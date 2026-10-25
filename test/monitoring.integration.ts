@@ -1,3 +1,4 @@
+import { UsersService } from '../src/users/users.service';
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -172,10 +173,14 @@ async function main(): Promise<void> {
       `INSERT INTO ${schema}."Invernadero" ("idInvernadero_Invernadero", "nombre_Invernadero", ubicacion, largo, ancho) VALUES (1,'Prueba','Prueba',1,1),(2,'Otro','Prueba',1,1)`,
     );
     await source.query(
-      `INSERT INTO ${schema}."Usuario" ("idUsuario_Usuario", "nombreUsuario", contrasena, rol) VALUES (1,'operador-ficticio','hash-ficticio','Operador')`,
+      `INSERT INTO ${schema}."Usuario" ("idUsuario_Usuario", "nombreUsuario", contrasena) VALUES (1,'operador-ficticio','hash-ficticio')`,
     );
     await source.query(
       `INSERT INTO ${schema}."UsuarioInvernadero" ("idUsuario_UsuarioInvernadero", "idInvernadero_UsuarioInvernadero") VALUES (1,1)`,
+    );
+    // La identidad histórica insertada explícitamente no avanza la secuencia PostgreSQL.
+    await source.query(
+      `SELECT setval(pg_get_serial_sequence('${schema}."Usuario"', 'idUsuario_Usuario'), (SELECT max("idUsuario_Usuario") FROM ${schema}."Usuario"))`,
     );
     const module = await Test.createTestingModule({
       imports: [
@@ -184,13 +189,15 @@ async function main(): Promise<void> {
           ignoreEnvFile: true,
           load: [
             () => ({
-              ADMIN_EMAIL: 'admin-live@example.com',
-              ADMIN_PASSWORD: 'Clave-ficticia-segura-123',
               auth: {
                 secret: 'secreto-ficticio-exclusivo-de-pruebas-123',
                 issuer: 'prueba',
                 audience: 'prueba',
                 accessTtl: 900,
+                refreshTtl: 604800,
+                webOrigins: ['http://localhost:5173'],
+                cookieSecure: false,
+                cookieSameSite: 'lax',
               },
             }),
           ],
@@ -206,6 +213,18 @@ async function main(): Promise<void> {
     app = module.createNestApplication({ logger: false });
     configureApp(app);
     await app.listen(0, '127.0.0.1');
+    // La cuenta administrativa es un dato ficticio de prueba, no se crea por variables del servidor.
+    await app
+      .get(UsersService)
+      .create(
+        'Administrador de prueba',
+        'admin-live@example.com',
+        'Clave-ficticia-segura-123',
+      );
+    await source.query(
+      `INSERT INTO ${schema}."UsuarioInvernadero" ("idUsuario_UsuarioInvernadero", "idInvernadero_UsuarioInvernadero", "rol_UsuarioInvernadero") SELECT "idUsuario_Usuario", 1, 'ADMIN' FROM ${schema}."Usuario" WHERE "correo_Usuario" = $1`,
+      ['admin-live@example.com'],
+    );
     const http = app.getHttpServer() as import('node:http').Server;
     const address = http.address() as AddressInfo;
     const base = `http://127.0.0.1:${address.port}`;
@@ -265,16 +284,11 @@ async function main(): Promise<void> {
       sensorId: sensor.id,
     });
     assert.equal(forbidden.error?.status, 403);
-    await request(http)
-      .put(`/monitoring/users/${operator.user.id}/database-identity`)
-      .set('Authorization', `Bearer ${operator.accessToken}`)
-      .send({ databaseUserId: '1' })
-      .expect(403);
-    await request(http)
-      .put(`/monitoring/users/${operator.user.id}/database-identity`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ databaseUserId: '1' })
-      .expect(200);
+    // La pertenencia se prepara en la base de prueba; las invitaciones siguen fuera del alcance.
+    await source.query(
+      `INSERT INTO ${schema}."UsuarioInvernadero" ("idUsuario_UsuarioInvernadero", "idInvernadero_UsuarioInvernadero", "rol_UsuarioInvernadero") SELECT "idUsuario_Usuario", 1, 'OPERATOR' FROM ${schema}."Usuario" WHERE "uuid_Usuario" = $1`,
+      [operator.user.id],
+    );
     await verifyHistory(
       http,
       source,
@@ -359,7 +373,8 @@ async function main(): Promise<void> {
       'No se reinició el flujo.',
     );
     await source.query(
-      `DELETE FROM ${schema}."UsuarioInvernadero" WHERE "idUsuario_UsuarioInvernadero"=1`,
+      `DELETE FROM ${schema}."UsuarioInvernadero" WHERE "idUsuario_UsuarioInvernadero"=(SELECT "idUsuario_Usuario" FROM ${schema}."Usuario" WHERE "uuid_Usuario"=$1)`,
+      [operator.user.id],
     );
     await monitoring.sweep();
     await until(

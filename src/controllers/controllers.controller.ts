@@ -1,3 +1,6 @@
+import { ControllerScope } from '../auth/decorators/controller-scope.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { PublicUser } from '../users/user.types';
 import {
   Body,
   Controller,
@@ -53,14 +56,15 @@ export class ControllerIdentityController {
 
 /**
  * Administra el registro de controladores ESP32, sus sensores y sus credenciales.
- * Todas sus rutas requieren Authorization: Bearer con JWT de un usuario ADMIN.
- * Los guards responden 401 sin autenticación válida y 403 para otros roles humanos.
+ * Sus rutas administrativas requieren JWT y pertenencia ADMIN en el invernadero del equipo.
+ * Los guards responden 401 sin autenticación válida y 403 sin pertenencia autorizada.
  * Los identificadores de ruta son cadenas bigint positivas; un formato inválido produce 400.
  * La validación rechaza propiedades adicionales y cuerpos o consultas inválidos con 400.
  * Las respuestas incluyen Cache-Control: no-store para impedir su almacenamiento en caché.
  */
 @Controller('controllers')
 @Roles(Role.ADMIN)
+@ControllerScope()
 export class ControllersController {
   constructor(
     private readonly controllers: ControllersService,
@@ -83,7 +87,7 @@ export class ControllersController {
   }
 
   /**
-   * GET /controllers: lista hasta 50 controladores ESP32 por id descendente.
+   * GET /controllers: lista hasta 50 equipos de invernaderos administrados por la cuenta.
    * @param query Consulta opcional beforeId: incluye solamente identificadores menores que ese cursor.
    * @returns HTTP 200 con { items, nextBeforeId }. Cada item es el perfil público del controlador,
    * sin credenciales. Si se obtienen 50 registros, nextBeforeId permite pedir la página siguiente;
@@ -91,8 +95,9 @@ export class ControllersController {
    */
   @Get()
   @Header('Cache-Control', 'no-store')
-  list(@Query() query: ControllerPageDto) {
-    return this.controllers.list(query.beforeId);
+  @Roles()
+  list(@CurrentUser() user: PublicUser, @Query() query: ControllerPageDto) {
+    return this.controllers.list(user.id, query.beforeId);
   }
 
   /**

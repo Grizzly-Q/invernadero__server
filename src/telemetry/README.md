@@ -75,7 +75,7 @@ No se incluyen alertas automáticas ni control de actuadores. El firmware físic
 
 ## Historial por sensor
 
-`GET /telemetry/sensors/:sensorId/history` requiere JWT humano. ADMIN puede consultar cualquier sensor; OPERATOR necesita el mismo vínculo de identidad PostgreSQL y asignación a invernadero que el [monitoreo](monitoring/README.md). Una credencial de ESP32 no permite consultar reportes. No es necesario que el controlador esté conectado o activo para consultar su historial.
+`GET /telemetry/sensors/:sensorId/history` requiere JWT humano. ADMIN y OPERATOR pueden consultar sensores únicamente de los invernaderos a los que pertenecen; se usa la misma comprobación persistente que el [monitoreo](monitoring/README.md). Una credencial de ESP32 no permite consultar reportes. No es necesario que el controlador esté conectado o activo para consultar su historial.
 
 ```http
 GET /telemetry/sensors/1/history?period=day

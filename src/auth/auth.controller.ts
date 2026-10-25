@@ -1,98 +1,167 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Header,
   HttpCode,
-  HttpStatus,
   Post,
   Req,
+  Res,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import type { Request, Response, CookieOptions } from 'express';
+import type { AuthConfig } from '../config/auth.config';
 import type { PublicUser } from '../users/user.types';
-import { AuthService } from './auth.service';
-import type { AuthenticatedRequest, TokenResponse } from './auth.types';
+import { AuthService, type SessionTokens } from './auth.service';
+import type { TokenResponse } from './auth.types';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
-/**
- * Autenticación de usuarios humanos mediante JWT Bearer, sin cookies ni credenciales de ESP32.
- * register y login son públicos; me y logout exigen una sesión vigente, sin restricción de rol.
- * La sesión se persiste en PostgreSQL; las cuentas de usuario siguen en memoria.
- * La validación de los cuerpos rechaza campos adicionales y formatos inválidos con HTTP 400.
- */
+/** Acceso Bearer en JSON y renovación mediante cookie HttpOnly; nunca expone el refresh a React. */
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  private readonly options: AuthConfig;
+  private readonly cookieName = 'refresh_token';
+  constructor(
+    private readonly auth: AuthService,
+    config: ConfigService,
+  ) {
+    this.options = config.getOrThrow<AuthConfig>('auth');
+  }
 
-  /**
-   * POST /auth/register: registra un usuario humano con rol OPERATOR y abre una sesión.
-   * Es público y admite hasta cinco solicitudes por minuto e IP según el limitador configurado.
-   * No crea un Usuario PostgreSQL ni asignaciones a invernaderos.
-   * @param dto Cuerpo con name (2 a 80 caracteres), email válido (hasta 254) y password (8 a 128).
-   * Se recortan los espacios del nombre y correo; el correo se normaliza a minúsculas.
-   * La contraseña se conserva exactamente como se recibe; no se admite un campo role.
-   * @returns HTTP 201 con accessToken, tokenType=Bearer, expiresIn en segundos y user
-   * (id UUID, name, email, role=OPERATOR), sin contraseña ni hash. Respuesta no almacenable en caché.
-   * @throws BadRequestException (400) si el cuerpo incumple la validación.
-   * @throws ConflictException (409) si el correo normalizado ya está registrado.
-   * @throws ThrottlerException (429) si se supera el límite de solicitudes.
-   */
+  /** Registra una cuenta, crea sesión y establece cookie; rechaza campos extra mediante el pipe global. */
   @Public()
   @Post('register')
   @Header('Cache-Control', 'no-store')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  register(@Body() dto: RegisterDto): Promise<TokenResponse> {
-    return this.auth.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<TokenResponse> {
+    this.checkOrigin(request);
+    return this.deliver(await this.auth.register(dto), response);
   }
 
-  /**
-   * POST /auth/login: valida las credenciales de un usuario humano y abre una nueva sesión.
-   * Es público y admite hasta cinco solicitudes por minuto e IP según el limitador configurado.
-   * No cierra otras sesiones del mismo usuario ni emite un token de renovación.
-   * @param dto Cuerpo con email válido de hasta 254 caracteres y password de 8 a 128 caracteres.
-   * El correo se recorta y normaliza a minúsculas; la contraseña no se transforma.
-   * @returns HTTP 200 con accessToken, tokenType=Bearer, expiresIn en segundos y perfil user
-   * (id, name, email y role), sin contraseña ni hash. Respuesta no almacenable en caché.
-   * @throws BadRequestException (400) si el cuerpo incumple la validación.
-   * @throws UnauthorizedException (401) con mensaje uniforme si el correo o contraseña son incorrectos.
-   * @throws ThrottlerException (429) si se supera el límite de solicitudes.
-   */
+  /** Valida credenciales, devuelve acceso corto y establece el refresh sin cerrar otras sesiones. */
   @Public()
   @Post('login')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  login(@Body() dto: LoginDto): Promise<TokenResponse> {
-    return this.auth.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<TokenResponse> {
+    this.checkOrigin(request);
+    return this.deliver(await this.auth.login(dto), response);
   }
 
   /**
-   * GET /auth/me: consulta el perfil de la sesión humana autenticada mediante JWT Bearer.
-   * @param user Perfil incorporado por el guard; no se recibe desde el cuerpo ni la consulta.
-   * @returns HTTP 200 con id, name, email y role, sin secretos ni datos de otros usuarios.
-   * La respuesta incluye Cache-Control: no-store y no modifica la sesión.
-   * @throws UnauthorizedException (401) si falta el JWT, venció o su sesión fue revocada.
+   * Renueva acceso y cookie usando únicamente el refresh; no exige un acceso todavía vigente.
+   * @throws ForbiddenException si el origen no está autorizado; UnauthorizedException si falta o falla la cookie.
    */
+  @Public()
+  @Post('refresh')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<TokenResponse> {
+    this.checkOrigin(request, true);
+    try {
+      return this.deliver(
+        await this.auth.refresh(this.cookie(request)),
+        response,
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException)
+        response.clearCookie(this.cookieName, this.cookieOptions());
+      throw error;
+    }
+  }
+
+  /** Consulta el perfil verificado por el guard; no modifica la sesión. */
   @Get('me')
   @Header('Cache-Control', 'no-store')
   me(@CurrentUser() user: PublicUser): PublicUser {
     return user;
   }
 
-  /**
-   * POST /auth/logout: cierra únicamente la sesión identificada por el JWT Bearer actual.
-   * Las otras sesiones del mismo usuario permanecen vigentes.
-   * @param request Petición con sessionId verificado por el guard; no recibe parámetros de negocio.
-   * @returns HTTP 204 sin cuerpo, después de retirar la sesión de PostgreSQL.
-   * @throws UnauthorizedException (401) si el JWT o la sesión ya no son válidos;
-   * repetir la petición con el mismo JWT revocado produce 401.
-   */
+  /** Revoca la sesión y borra la cookie; acepta refresh con origen verificado o Bearer para clientes existentes. */
+  @Public()
   @Post('logout')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@Req() request: AuthenticatedRequest): Promise<void> {
-    await this.auth.logout(request.sessionId);
+  @HttpCode(204)
+  @Header('Cache-Control', 'no-store')
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    this.checkOrigin(request);
+    try {
+      if (request.headers.authorization) {
+        const match = /^Bearer ([^\s]+)$/i.exec(request.headers.authorization);
+        if (!match) throw new UnauthorizedException('Bearer inválido.');
+        const session = await this.auth.authenticate(match[1]);
+        await this.auth.logout(session.sessionId);
+      } else {
+        this.checkOrigin(request, true);
+        await this.auth.logoutWithRefresh(this.cookie(request));
+      }
+    } finally {
+      response.clearCookie(this.cookieName, this.cookieOptions());
+    }
+  }
+
+  /** Rechaza solicitudes de otros sitios incluso si no pueden leer la respuesta CORS. */
+  private checkOrigin(request: Request, required = false): void {
+    const origin = request.headers.origin;
+    if (
+      (!origin && required) ||
+      (origin && !this.options.webOrigins.includes(origin))
+    )
+      throw new ForbiddenException('Origen no autorizado.');
+  }
+
+  /** Lee una sola cookie JWT con límite de tamaño; rechaza cookies ambiguas o faltantes. */
+  private cookie(request: Request): string {
+    const values = (request.headers.cookie ?? '')
+      .split(';')
+      .map((part) => part.trim())
+      .filter((part) => part.startsWith(this.cookieName + '='));
+    if (values.length !== 1)
+      throw new UnauthorizedException('Se requiere la cookie de renovación.');
+    const token = values[0].slice(this.cookieName.length + 1);
+    if (!/^[A-Za-z0-9_.-]{1,2048}$/.test(token))
+      throw new UnauthorizedException('Cookie de renovación inválida.');
+    return token;
+  }
+
+  /** Restringe la cookie a rutas de autenticación y al servidor que la emitió, sin Domain compartido. */
+  private cookieOptions(): CookieOptions {
+    return {
+      httpOnly: true,
+      secure: this.options.cookieSecure,
+      sameSite: this.options.cookieSameSite,
+      path: '/auth',
+    };
+  }
+
+  /** Establece el secreto solo en Set-Cookie y conserva el contrato JSON público anterior. */
+  private deliver(tokens: SessionTokens, response: Response): TokenResponse {
+    const { refreshToken, refreshExpiresAt, ...result } = tokens;
+    response.cookie(this.cookieName, refreshToken, {
+      ...this.cookieOptions(),
+      expires: refreshExpiresAt,
+    });
+    return result;
   }
 }

@@ -115,19 +115,9 @@ El código para Arduino IDE se mantiene en el proyecto independiente `esp32__cli
 
 Todos los espectadores de un sensor comparten una única orden. Se solicita la frecuencia más rápida de los interesados. Salir uno no interrumpe a los demás; salir el último envía stop. Si el ESP32 se desconecta, todas las suscripciones afectadas finalizan; reconectar no las restaura implícitamente.
 
-ADMIN puede solicitar cualquier sensor de un equipo activo conectado. OPERATOR necesita una asociación administrativa explícita con un Usuario PostgreSQL y una fila válida de `UsuarioInvernadero`. Mientras las cuentas de la API sigan en memoria, un administrador vincula su UUID con el bigint existente:
+ADMIN y OPERATOR pueden solicitar sensores de equipos activos conectados únicamente si tienen una pertenencia válida al invernadero del sensor en UsuarioInvernadero. La cuenta se identifica por su UUID persistente en Usuario. No hay acceso administrativo universal ni vínculos temporales en memoria. Las rutas `/monitoring/users/:id/database-identity` fueron retiradas.
 
-```http
-PUT /monitoring/users/<uuid-de-la-api>/database-identity
-Authorization: Bearer <JWT-admin>
-Content-Type: application/json
-
-{ "databaseUserId": "1" }
-```
-
-La cuenta PostgreSQL debe existir y tener rol `Operador`; no se crean usuarios ni asignaciones desde este endpoint. Un mismo Usuario PostgreSQL no puede vincularse simultáneamente a dos cuentas. `DELETE` sobre esa ruta retira la asociación. El vínculo también vive en memoria y debe rehacerse después de reiniciar, igual que las cuentas y sesiones actuales. No se intenta convertir un UUID en bigint ni conceder acceso automáticamente por correo o nombre.
-
-El JWT se revalida antes de cada lectura entregada; la asignación también se consulta nuevamente. Las credenciales del equipo se revalidan en cada mensaje y todas las conexiones silenciosas se revisan aproximadamente cada segundo, sujeto al tiempo de respuesta de PostgreSQL. Logout, revocación, rotación, bloqueo o retirada de permisos cierran el acceso; no basta con autenticar al abrir el socket.
+La pertenencia se consulta y revalida durante la conexión. Crear un invernadero asigna ADMIN al creador en una transacción; las invitaciones internas siguen fuera del alcance. Consultar [invernaderos](../../greenhouses/README.md).
 
 ## Límites y despliegue
 
@@ -139,7 +129,7 @@ El JWT se revalida antes de cada lectura entregada; la asignación también se c
 
 La implementación comparte memoria dentro de una única instancia. La configuración actual de Cloudflare enruta a `getByName('api')` con `max_instances: 1`; se conserva ese enrutamiento. Antes de escalar, introducir coordinación y distribución entre instancias; no basta con añadir un adaptador de salas Socket.IO.
 
-El proxy debe reenviar upgrades de `/controllers/socket` y `/socket.io/`. El `sleepAfter` actual del contenedor es diez minutos: mantener el tráfico HTTP normal del ESP32, sin asumir que los pings WebSocket renuevan actividad del contenedor. Los reinicios pierden concesiones, vínculos humanos y sesiones; el firmware vuelve al modo normal por su plazo local y los usuarios deben iniciar de nuevo.
+El proxy debe reenviar upgrades de `/controllers/socket` y `/socket.io/`. El `sleepAfter` actual del contenedor es diez minutos: mantener el tráfico HTTP normal del ESP32, sin asumir que los pings WebSocket renuevan actividad del contenedor. Los reinicios pierden concesiones temporales; conservan cuentas, sesiones y pertenencias; el firmware vuelve al modo normal por su plazo local y los usuarios pueden renovar su acceso y volver a solicitar el monitoreo sin rehacer asociaciones humanas.
 
 No se aplicaron nuevas migraciones ni se activaron equipos reales. Las clases de transporte no sustituyen la autenticación HTTP existente y no reciben actuadores ni órdenes de riego.
 

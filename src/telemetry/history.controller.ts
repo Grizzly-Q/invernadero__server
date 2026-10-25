@@ -1,19 +1,15 @@
 import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { DatabaseIdPipe } from '../db/database-id';
-import { Role } from '../users/role.enum';
 import type { PublicUser } from '../users/user.types';
 import { HistoryQueryDto } from './dto/history-query.dto';
 import { HistoryService } from './history.service';
 
 /**
- * Consulta del historial persistido para usuarios humanos con JWT Bearer ADMIN u OPERATOR.
- * No acepta credenciales de controladores ESP32. ADMIN consulta cualquier sensor;
- * OPERATOR requiere vínculo de identidad PostgreSQL y asignación vigente al invernadero.
+ * Consulta del historial persistido para miembros del invernadero autenticados con JWT Bearer.
+ * ADMIN y OPERATOR se verifican por pertenencia en PostgreSQL; no acepta credenciales ESP32.
  */
 @Controller('telemetry/sensors')
-@Roles(Role.ADMIN, Role.OPERATOR)
 export class HistoryController {
   constructor(private readonly history: HistoryService) {}
 
@@ -35,7 +31,7 @@ export class HistoryController {
    * Un periodo vacío devuelve items=[], count="0" y estadísticas null; no rellena horas sin datos.
    * @throws BadRequestException (400) si el id, los filtros, la paginación o el rango son inválidos.
    * @throws UnauthorizedException (401) si falta un JWT válido con sesión vigente.
-   * @throws ForbiddenException (403) si falta el vínculo de identidad o la asignación requerida.
+   * @throws ForbiddenException (403) si falta una pertenencia autorizada al invernadero.
    * @throws NotFoundException (404) si el sensor no existe.
    */
   @Get(':sensorId/history')

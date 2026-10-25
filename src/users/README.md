@@ -1,25 +1,13 @@
 # Usuarios
 
-`UsersService` crea y consulta usuarios mediante un almacén temporal en memoria. Cada usuario tiene identificador, nombre, correo normalizado, un rol y un hash de contraseña reservado al servidor.
+`UsersService` crea y consulta cuentas persistentes en `Usuario`, con UUID público, nombre, correo normalizado y hash de contraseña. No asigna ni expone roles globales. La clave bigint histórica se conserva para las relaciones de negocio. Los ESP32 tienen credenciales independientes y no son cuentas humanas.
 
-Los roles de usuario son `ADMIN` y `OPERATOR`. Los equipos ESP32 se separan en el [módulo controllers](../controllers/README.md); no se registran como usuarios.
+Registro y login no asignan invernaderos. Crear un invernadero añade una pertenencia ADMIN para el creador en la misma transacción. Los roles se consultan por invernadero; una persona puede ser ADMIN en uno y OPERATOR en otro. Consultar [invernaderos](../greenhouses/README.md).
 
-## Comportamiento actual
+El correo es único y normalizado; duplicarlo produce 409 incluso entre procesos. El nombre visible admite duplicados. Los perfiles públicos `{ id, name, email }` omiten contraseñas y hashes; el hash solo se selecciona internamente para verificar credenciales.
 
-- El correo se recorta y convierte a minúsculas antes de buscarlo o guardarlo.
-- Crear un correo duplicado produce **409 Conflict**, incluso con registros concurrentes en el mismo proceso.
-- Los perfiles públicos no contienen contraseñas ni hashes.
-- El registro público crea Operadores; la asignación de otros roles se realiza dentro del servidor.
-- Las variables `ADMIN_EMAIL` y `ADMIN_PASSWORD` permiten crear el Administrador inicial al arrancar.
+Las cuentas históricas sin correo permanecen en la base y requieren completarse antes de iniciar sesión. La aplicación no vincula cuentas automáticamente por nombre. El rol anterior se conserva en `rolHistorico_Usuario` únicamente para reversión de la migración y no se consulta para autorizar.
 
-## Endpoint
+No se crean administradores al arrancar ni existe un listado global `/users`. ADMIN solo puede listar miembros de su propio invernadero con `/greenhouses/:id/members`. Las invitaciones internas siguen fuera del alcance.
 
-`GET /users` lista perfiles y requiere JWT con rol Administrador. La restricción se declara en [users.controller.ts](users.controller.ts).
-
-Para proteger otras rutas o permitir varios roles, consultar la [guía de autorización](../auth/authorization.md). Para registro e inicio de sesión, consultar [autenticación](../auth/README.md).
-
-## Persistencia pendiente
-
-Los usuarios desaparecen al reiniciar la API y cada proceso mantiene su propio almacén. La conexión TypeORM existente todavía no se utiliza para guardarlos. Antes de desplegar, implementar persistencia y una restricción única de correo en PostgreSQL. No hay un endpoint de administración de roles.
-
-[Configuración](../config/README.md) · [Base de datos](../db/README.md) · [Volver al README principal](../../README.md).
+`SesionUsuario` referencia el UUID con clave foránea y elimina sus filas al borrar la cuenta. Las sesiones y pertenencias sobreviven reinicios. Consultar [autenticación](../auth/README.md) y [migraciones](../db/migrations/README.md).

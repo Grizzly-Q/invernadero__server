@@ -1,79 +1,74 @@
-import { ConflictException, Injectable, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { PasswordService } from '../auth/password.service';
-import { Role } from './role.enum';
 import type { PublicUser, UserRecord } from './user.types';
+import { UserEntity } from './entities/user.entity';
 
-/** Almacén temporal: sustituir por persistencia antes de desplegar en producción. */
+/** Persiste identidades sin roles globales; los permisos pertenecen a UsuarioInvernadero. */
 @Injectable()
-export class UsersService implements OnModuleInit {
-  private readonly users = new Map<string, UserRecord>();
-
+export class UsersService {
   constructor(
     private readonly passwords: PasswordService,
-    private readonly config: ConfigService,
+    @InjectRepository(UserEntity)
+    private readonly users: Repository<UserEntity>,
   ) {}
 
-  /** Crea opcionalmente el administrador inicial desde variables del servidor. */
-  async onModuleInit(): Promise<void> {
-    const email = this.config.get<string>('ADMIN_EMAIL');
-    const password = this.config.get<string>('ADMIN_PASSWORD');
-    if (!email && !password) return;
-    if (!email || !password || password.length < 8 || password.length > 128) {
-      throw new Error(
-        'Configure ADMIN_EMAIL y ADMIN_PASSWORD (8 a 128 caracteres).',
-      );
-    }
-    await this.create('Administrador', email, password, Role.ADMIN);
+  /** Busca el correo normalizado e incluye el hash únicamente para verificar credenciales. */
+  async findByEmail(email: string): Promise<UserRecord | undefined> {
+    const user = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.email = :email', { email: email.trim().toLowerCase() })
+      .getOne();
+    return user
+      ? { ...this.toPublic(user), passwordHash: user.passwordHash }
+      : undefined;
   }
 
-  /** Busca credenciales por correo normalizado; usar solo dentro del servidor. */
-  findByEmail(email: string): UserRecord | undefined {
-    const normalized = email.trim().toLowerCase();
-    return [...this.users.values()].find((user) => user.email === normalized);
-  }
-
-  /** Recupera el perfil sin credenciales, o undefined cuando no existe. */
-  findById(id: string): PublicUser | undefined {
-    const user = this.users.get(id);
+  /** Recupera el perfil por UUID sin consultar el hash. */
+  async findById(id: string): Promise<PublicUser | undefined> {
+    const user = await this.users.findOneBy({ id });
     return user ? this.toPublic(user) : undefined;
   }
 
   /**
-   * Crea un usuario con rol Operador por defecto; solo el servidor puede asignar otro rol.
-   * @returns Perfil creado sin credenciales; se almacena temporalmente en memoria.
-   * @throws ConflictException si el correo normalizado ya está registrado.
+   * Crea una cuenta persistente sin asignarle invernaderos ni privilegios.
+   * @returns Perfil sin contraseña, después de confirmar la escritura.
+   * @throws ConflictException si el correo ya está registrado, incluso con solicitudes simultáneas.
    */
   async create(
     name: string,
     email: string,
     password: string,
-    role: Role = Role.OPERATOR,
   ): Promise<PublicUser> {
-    const normalized = email.trim().toLowerCase();
-    const passwordHash = await this.passwords.hash(password);
-    // La comprobación ocurre después del await para evitar registros concurrentes duplicados.
-    if (this.findByEmail(normalized)) {
-      throw new ConflictException('El correo ya está registrado.');
+    try {
+      const user = await this.users.save(
+        this.users.create({
+          id: randomUUID(),
+          name,
+          email: email.trim().toLowerCase(),
+          passwordHash: await this.passwords.hash(password),
+        }),
+      );
+      return this.toPublic(user);
+    } catch (error) {
+      if (
+        (error as { driverError?: { code?: string } }).driverError?.code ===
+        '23505'
+      )
+        throw new ConflictException('El correo ya está registrado.');
+      throw error;
     }
-    const user: UserRecord = {
-      id: randomUUID(),
-      name,
-      email: normalized,
-      role,
-      passwordHash,
+  }
+
+  /** Expone únicamente identidad, nombre y correo; omite claves internas y credenciales. */
+  private toPublic(user: UserEntity): PublicUser {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email ?? '',
     };
-    this.users.set(user.id, user);
-    return this.toPublic(user);
-  }
-
-  /** Lista perfiles sin exponer contraseñas ni hashes. */
-  findAll(): PublicUser[] {
-    return [...this.users.values()].map((user) => this.toPublic(user));
-  }
-
-  private toPublic(user: UserRecord): PublicUser {
-    return { id: user.id, name: user.name, email: user.email, role: user.role };
   }
 }

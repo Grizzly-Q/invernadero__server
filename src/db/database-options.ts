@@ -1,3 +1,4 @@
+import { UserEntity } from '../users/entities/user.entity';
 import { join } from 'node:path';
 import type { DataSourceOptions } from 'typeorm';
 import { ControllerEntity } from '../controllers/entities/controller.entity';
@@ -24,6 +25,7 @@ export function databaseOptions(
       ControllerEntity,
       ControllerCredentialEntity,
       UserSessionEntity,
+      UserEntity,
       SensorEntity,
       MeasurementEntity,
     ],
