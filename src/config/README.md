@@ -1,3 +1,4 @@
+Antes de arrancar, completar `DATABASE_URL`, `JWT_SECRET` y `TOKEN_ENCRYPTION_KEY` en `.env`. Consultar la [guía de configuración](src/config/README.md). Por defecto, la API escucha en `http://localhost:3000`.
 # Configuración y variables de entorno
 
 La configuración está centralizada en esta carpeta:
@@ -16,6 +17,7 @@ Copiar `.env.example` a `.env` y completar los valores obligatorios. No comparti
 | --- | --- |
 | `DATABASE_URL` | Obligatoria. URL `postgres://` o `postgresql://` con servidor y nombre de base de datos. Copiarla desde **Connect** en Supabase y completar las credenciales; no usar la URL HTTPS del proyecto. |
 | `JWT_SECRET` | Obligatoria. Al menos 32 bytes y no compuesta únicamente por espacios. |
+| `TOKEN_ENCRYPTION_KEY` | Obligatoria. Clave AES-256 aleatoria de 32 bytes, codificada en Base64 y distinta de `JWT_SECRET`. |
 | `JWT_ISSUER` | `invernadero-api`. |
 | `JWT_AUDIENCE` | `invernadero-android`. |
 | `JWT_ACCESS_TTL_SECONDS` | Entero positivo en segundos; por defecto `900` (15 minutos). |
@@ -23,13 +25,14 @@ Copiar `.env.example` a `.env` y completar los valores obligatorios. No comparti
 | `ADMIN_EMAIL` | Opcional, junto con `ADMIN_PASSWORD`, para crear el Administrador inicial. |
 | `ADMIN_PASSWORD` | Entre 8 y 128 caracteres; se debe configurar junto con `ADMIN_EMAIL`. |
 
-Generar un secreto aleatorio con:
+Generar el secreto JWT y la clave de cifrado por separado:
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 ```
 
-Guardar el resultado en `JWT_SECRET`. Sin las dos variables de administrador no se crea ese usuario inicial.
+Guardar el primer resultado en `JWT_SECRET` y el segundo en `TOKEN_ENCRYPTION_KEY`. No reutilizar el mismo valor. En Cloudflare, guardar la clave como un Worker secret. Mantenerla estable: cambiarla impide descifrar las sesiones existentes y obliga a iniciar sesión de nuevo. Sin las dos variables de administrador no se crea ese usuario inicial.
 
 ## Cómo se valida
 

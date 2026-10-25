@@ -13,6 +13,7 @@ npm run start:dev
 ```
 
 Antes de arrancar, completar `DATABASE_URL` y `JWT_SECRET` en `.env`. Consultar la [guía de configuración](src/config/README.md). Por defecto, la API escucha en `http://localhost:3000`.
+Antes de arrancar, completar `DATABASE_URL`, `JWT_SECRET` y `TOKEN_ENCRYPTION_KEY` en `.env`. Consultar la [guía de configuración](src/config/README.md). Por defecto, la API escucha en `http://localhost:3000`.
 
 El middleware CORS permite el proyecto React servido desde `http://localhost:5173`, incluidos los encabezados `Authorization` y `Content-Type`. El frontend debe enviar el JWT como Bearer; no se usan cookies ni `credentials: 'include'`. Este permiso de navegador no reemplaza la autenticación ni los permisos de cada endpoint. Otros orígenes, como `http://127.0.0.1:5173`, no están incluidos.
 

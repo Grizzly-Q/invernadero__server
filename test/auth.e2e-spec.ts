@@ -20,6 +20,7 @@ describe('Autenticación JWT y autorización (e2e)', () => {
   beforeEach(async () => {
     originalEnvironment = { ...process.env };
     process.env.JWT_SECRET = 'secreto-exclusivo-de-pruebas-con-32-bytes';
+    process.env.TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
     process.env.JWT_ISSUER = 'invernadero-api';
     process.env.JWT_AUDIENCE = 'invernadero-android';
     process.env.JWT_ACCESS_TTL_SECONDS = '900';

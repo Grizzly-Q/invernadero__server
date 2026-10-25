@@ -5,6 +5,7 @@ interface Env {
   API: DurableObjectNamespace<InvernaderoContainer>;
   DATABASE_URL: string;
   JWT_SECRET: string;
+  TOKEN_ENCRYPTION_KEY: string;
   JWT_ISSUER: string;
   JWT_AUDIENCE: string;
   JWT_ACCESS_TTL_SECONDS: string;
@@ -22,6 +23,7 @@ export class InvernaderoContainer extends Container<Env> {
     PORT: '3000',
     DATABASE_URL: this.env.DATABASE_URL,
     JWT_SECRET: this.env.JWT_SECRET,
+    TOKEN_ENCRYPTION_KEY: this.env.TOKEN_ENCRYPTION_KEY,
     JWT_ISSUER: this.env.JWT_ISSUER,
     JWT_AUDIENCE: this.env.JWT_AUDIENCE,
     JWT_ACCESS_TTL_SECONDS: this.env.JWT_ACCESS_TTL_SECONDS,

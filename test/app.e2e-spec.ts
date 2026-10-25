@@ -12,6 +12,7 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     originalEnvironment = { ...process.env };
     process.env.JWT_SECRET = 'secreto-exclusivo-de-pruebas-con-32-bytes';
+    process.env.TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
     delete process.env.ADMIN_EMAIL;
     delete process.env.ADMIN_PASSWORD;
     const moduleFixture: TestingModule = await Test.createTestingModule({

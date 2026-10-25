@@ -48,7 +48,7 @@ El JWT contiene `sub` (usuario), `sid` (sesión), `type`, `iat`, `exp`, `iss` y 
 Authorization: Bearer <accessToken>
 ```
 
-Cuando el JWT vence, la API devuelve 401 y Android debe volver a mostrar login. El logout revoca inmediatamente el JWT de la sesión actual; otras sesiones del usuario siguen abiertas.
+El servidor guarda en PostgreSQL el `sid`, el usuario, el vencimiento y el JWT cifrado con AES-256-GCM; nunca almacena el token en texto plano. Para autenticar, valida la firma y los claims y compara el token presentado con el contenido descifrado. La clave `TOKEN_ENCRYPTION_KEY` debe mantenerse secreta y estable. Cuando el JWT vence, la API devuelve 401 y Android debe volver a mostrar login. El logout revoca inmediatamente el JWT de la sesión actual; otras sesiones del usuario siguen abiertas.
 
 Errores: **400** para datos inválidos, **401** para credenciales o tokens inválidos/vencidos, **403** para permisos insuficientes, **409** para correo duplicado y **429** al superar límites por IP. NestJS devuelve JSON con `statusCode`, `message` (texto o lista de errores) y `error` cuando corresponde. Login y registro admiten 5 solicitudes por minuto por ruta/IP; el límite general es de 60.
 
@@ -58,7 +58,7 @@ Enviar JSON mediante Retrofit/OkHttp y agregar `Authorization: Bearer <accessTok
 
 ## Alcance actual
 
-Las contraseñas se protegen con scrypt y una sal aleatoria. Las sesiones y los límites de solicitudes están en memoria: el reinicio pierde las sesiones y reinicia los contadores. Antes de usar varias instancias, compartir la persistencia de sesiones y límites y configurar el proxy de confianza. Usar HTTPS para el tráfico real.
+Las contraseñas se protegen con scrypt y una sal aleatoria. Las sesiones están en PostgreSQL y los límites de solicitudes siguen en memoria. Los usuarios todavía se almacenan en memoria, por lo que la persistencia de sesiones no conserva las cuentas de operador tras reiniciar el proceso. Antes de usar varias instancias, compartir también los límites de solicitudes y configurar el proxy de confianza. Usar HTTPS para el tráfico real.
 
 No se incluyen recuperación de contraseña ni verificación de correo. Las pruebas e2e cubren registro, validación, duplicados concurrentes, login, JWT manipulado/vencido, audiencia/emisor, revocación y límites de intentos.
 

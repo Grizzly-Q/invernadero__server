@@ -1,6 +1,7 @@
 /** Configuración validada al arrancar; los tiempos se expresan en segundos. */
 export interface AuthConfig {
   secret: string;
+  tokenEncryptionKey: Buffer;
   issuer: string;
   audience: string;
   accessTtl: number;
@@ -19,6 +20,17 @@ export function authConfig(
   if (!secret?.trim() || Buffer.byteLength(secret, 'utf8') < 32) {
     throw new Error('JWT_SECRET debe contener al menos 32 bytes.');
   }
+  const encodedEncryptionKey = environment.TOKEN_ENCRYPTION_KEY;
+  const tokenEncryptionKey = Buffer.from(encodedEncryptionKey ?? '', 'base64');
+  if (
+    !encodedEncryptionKey ||
+    tokenEncryptionKey.length !== 32 ||
+    tokenEncryptionKey.toString('base64') !== encodedEncryptionKey
+  ) {
+    throw new Error(
+      'TOKEN_ENCRYPTION_KEY debe ser Base64 de una clave aleatoria de 32 bytes.',
+    );
+  }
 
   const seconds = (name: string, fallback: number): number => {
     const value = Number(environment[name] ?? fallback);
@@ -30,6 +42,7 @@ export function authConfig(
 
   return {
     secret,
+    tokenEncryptionKey,
     issuer: environment.JWT_ISSUER || 'invernadero-api',
     audience: environment.JWT_AUDIENCE || 'invernadero-android',
     accessTtl: seconds('JWT_ACCESS_TTL_SECONDS', 900),

@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import type { DataSourceOptions } from 'typeorm';
 import { ControllerEntity } from '../controllers/entities/controller.entity';
 import { ControllerCredentialEntity } from '../controllers/entities/controller-credential.entity';
+import { UserSessionEntity } from '../auth/entities/user-session.entity';
 import { SensorEntity } from '../telemetry/entities/sensor.entity';
 import { MeasurementEntity } from '../telemetry/entities/measurement.entity';
 import { GreenhouseEntity } from './entities/greenhouse.entity';
@@ -22,6 +23,7 @@ export function databaseOptions(
       GreenhouseEntity,
       ControllerEntity,
       ControllerCredentialEntity,
+      UserSessionEntity,
       SensorEntity,
       MeasurementEntity,
     ],

@@ -20,7 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 /**
  * Autenticación de usuarios humanos mediante JWT Bearer, sin cookies ni credenciales de ESP32.
  * register y login son públicos; me y logout exigen una sesión vigente, sin restricción de rol.
- * Usuarios y sesiones se conservan en memoria y se pierden al reiniciar el proceso.
+ * La sesión se persiste en PostgreSQL; las cuentas de usuario siguen en memoria.
  * La validación de los cuerpos rechaza campos adicionales y formatos inválidos con HTTP 400.
  */
 @Controller('auth')
@@ -86,13 +86,13 @@ export class AuthController {
    * POST /auth/logout: cierra únicamente la sesión identificada por el JWT Bearer actual.
    * Las otras sesiones del mismo usuario permanecen vigentes.
    * @param request Petición con sessionId verificado por el guard; no recibe parámetros de negocio.
-   * @returns HTTP 204 sin cuerpo, después de retirar la sesión de la memoria del servidor.
+   * @returns HTTP 204 sin cuerpo, después de retirar la sesión de PostgreSQL.
    * @throws UnauthorizedException (401) si el JWT o la sesión ya no son válidos;
    * repetir la petición con el mismo JWT revocado produce 401.
    */
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  logout(@Req() request: AuthenticatedRequest): void {
-    this.auth.logout(request.sessionId);
+  async logout(@Req() request: AuthenticatedRequest): Promise<void> {
+    await this.auth.logout(request.sessionId);
   }
 }

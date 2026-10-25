@@ -1,7 +1,15 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from 'node:crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import type { PublicUser } from '../users/user.types';
 import type { AuthConfig } from '../config/auth.config';
@@ -9,18 +17,11 @@ import type { AccessClaims, TokenResponse } from './auth.types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { PasswordService } from './password.service';
+import { UserSessionEntity } from './entities/user-session.entity';
 
-/** Sesión temporal que permite revocar el JWT al cerrar sesión. */
-interface Session {
-  id: string;
-  userId: string;
-  expiresAt: number;
-}
-
-/** Emite un único JWT por sesión y permite revocarlo mediante logout. */
+/** Emite un JWT por sesión y persiste su vigencia y revocación en PostgreSQL. */
 @Injectable()
 export class AuthService {
-  private readonly sessions = new Map<string, Session>();
   private readonly options: AuthConfig;
 
   constructor(
@@ -28,6 +29,8 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly jwt: JwtService,
     config: ConfigService,
+    @InjectRepository(UserSessionEntity)
+    private readonly sessions: Repository<UserSessionEntity>,
   ) {
     this.options = config.getOrThrow<AuthConfig>('auth');
   }
@@ -69,13 +72,16 @@ export class AuthService {
       ) {
         throw new Error('Claims inválidos.');
       }
-      const session = this.sessions.get(claims.sid);
+      const session = await this.sessions.findOneBy({
+        id: claims.sid,
+        userId: claims.sub,
+      });
       const user = this.users.findById(claims.sub);
       if (
         !session ||
-        session.userId !== claims.sub ||
-        session.expiresAt <= Date.now() ||
-        !user
+        session.expiresAt.getTime() <= Date.now() ||
+        !user ||
+        !this.matchesToken(token, session.encryptedToken)
       ) {
         throw new Error('Sesión inválida.');
       }
@@ -87,24 +93,28 @@ export class AuthService {
   }
 
   /** Revoca inmediatamente el JWT de la sesión actual. */
-  logout(sessionId: string): void {
-    this.sessions.delete(sessionId);
+  async logout(sessionId: string): Promise<void> {
+    await this.sessions.delete({ id: sessionId });
   }
 
-  private createSession(user: PublicUser): TokenResponse {
-    this.pruneExpired();
+  private async createSession(user: PublicUser): Promise<TokenResponse> {
+    await this.sessions.delete({ expiresAt: LessThanOrEqual(new Date()) });
     return this.issueToken(user, randomUUID());
   }
 
-  private issueToken(user: PublicUser, sessionId: string): TokenResponse {
+  private async issueToken(
+    user: PublicUser,
+    sessionId: string,
+  ): Promise<TokenResponse> {
     const accessToken = this.jwt.sign(
       { sub: user.id, sid: sessionId, type: 'access' } satisfies AccessClaims,
       { expiresIn: this.options.accessTtl },
     );
-    this.sessions.set(sessionId, {
+    await this.sessions.save({
       id: sessionId,
       userId: user.id,
-      expiresAt: Date.now() + this.options.accessTtl * 1000,
+      encryptedToken: this.encryptToken(accessToken),
+      expiresAt: new Date(Date.now() + this.options.accessTtl * 1000),
     });
     return {
       accessToken,
@@ -113,10 +123,40 @@ export class AuthService {
       user,
     };
   }
-
-  private pruneExpired(): void {
-    for (const [id, session] of this.sessions) {
-      if (session.expiresAt <= Date.now()) this.sessions.delete(id);
+  private encryptToken(token: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv(
+      'aes-256-gcm',
+      this.options.tokenEncryptionKey,
+      iv,
+    );
+    const ciphertext = Buffer.concat([
+      cipher.update(token, 'utf8'),
+      cipher.final(),
+    ]);
+    return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString(
+      'base64',
+    );
+  }
+  private matchesToken(token: string, encryptedToken: string): boolean {
+    const payload = Buffer.from(encryptedToken, 'base64');
+    if (payload.length <= 28 || payload.toString('base64') !== encryptedToken) {
+      return false;
     }
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      this.options.tokenEncryptionKey,
+      payload.subarray(0, 12),
+    );
+    decipher.setAuthTag(payload.subarray(12, 28));
+    const decryptedToken = Buffer.concat([
+      decipher.update(payload.subarray(28)),
+      decipher.final(),
+    ]);
+    const presentedToken = Buffer.from(token, 'utf8');
+    return (
+      decryptedToken.length === presentedToken.length &&
+      timingSafeEqual(decryptedToken, presentedToken)
+    );
   }
 }
