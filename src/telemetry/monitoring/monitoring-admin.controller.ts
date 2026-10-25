@@ -16,7 +16,7 @@ import { MonitoringAccessService } from './monitoring-access.service';
 /**
  * Asociación administrativa entre cuentas humanas de la API y usuarios Operador de PostgreSQL.
  * Todas las rutas exigen JWT Bearer de un usuario ADMIN; otros roles reciben 403 y JWT inválidos, 401.
- * El vínculo se conserva en memoria y se pierde al reiniciar, igual que las cuentas actuales.
+ * El vínculo se conserva en memoria y se pierde al reiniciar; las cuentas sí se persisten.
  * Sirve para autorizar tanto el monitoreo en vivo como el historial; no asigna invernaderos.
  */
 @Controller('monitoring/users')
@@ -27,7 +27,7 @@ export class MonitoringAdminController {
   /**
    * PUT /monitoring/users/:userId/database-identity: vincula una cuenta OPERATOR con un Operador existente.
    * Puede reemplazar el vínculo de esa cuenta; una identidad PostgreSQL no puede compartirse entre cuentas.
-   * @param userId UUID versión 4 de la cuenta humana en memoria de la API, no un id de controlador ESP32.
+   * @param userId UUID versión 4 de una cuenta persistida de la API, no un id de controlador ESP32.
    * @param dto Cuerpo { databaseUserId }: identificador bigint positivo como cadena del Usuario PostgreSQL.
    * @returns HTTP 200 con { userId, databaseUserId }, después de guardar el vínculo en memoria.
    * No crea usuarios PostgreSQL ni filas de UsuarioInvernadero; el acceso requiere asignaciones existentes.

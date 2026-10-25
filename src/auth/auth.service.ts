@@ -43,12 +43,16 @@ export class AuthService {
 
   /** Valida credenciales y abre una sesión; devuelve 401 con un mensaje uniforme. */
   async login(dto: LoginDto): Promise<TokenResponse> {
-    const user = this.users.findByEmail(dto.email);
+    const user = await this.users.findByEmail(dto.email);
     const valid = await this.passwords.verify(dto.password, user?.passwordHash);
     if (!user || !valid) {
       throw new UnauthorizedException('Credenciales incorrectas.');
     }
-    return this.createSession(this.users.findById(user.id)!);
+    const profile = await this.users.findById(user.id);
+    if (!profile) {
+      throw new UnauthorizedException('Credenciales incorrectas.');
+    }
+    return this.createSession(profile);
   }
 
   /** Verifica firma y claims, y exige que la sesión y el usuario sigan vigentes. */
@@ -76,7 +80,7 @@ export class AuthService {
         id: claims.sid,
         userId: claims.sub,
       });
-      const user = this.users.findById(claims.sub);
+      const user = await this.users.findById(claims.sub);
       if (
         !session ||
         session.expiresAt.getTime() <= Date.now() ||

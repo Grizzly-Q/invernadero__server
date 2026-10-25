@@ -30,6 +30,6 @@ Las entidades de invernaderos, controladores, credenciales, sesiones de usuario,
 
 La [guía de migraciones](migrations/README.md) documenta el esquema inicial, los cambios, la conservación del historial, los comandos de ejecución y las limitaciones de reversión.
 
-La consulta usa `DataSource.query()`. El registro y el inicio de sesión todavía utilizan usuarios en memoria: no insertan ni consultan la tabla `Usuario`. Las sesiones se guardan en `SesionUsuario`; el JWT se cifra con AES-256-GCM usando `TOKEN_ENCRYPTION_KEY`, en lugar de guardarse en texto plano. La tabla se crea con la migración `1792771200005-CrearSesionUsuario`. El aprovisionamiento de ESP32 y la recepción de telemetría utilizan repositorios y transacciones persistentes. Consultar [controllers](../controllers/README.md) y [telemetría](../telemetry/README.md).
+La consulta usa `DataSource.query()`. Las cuentas de login se guardan en `CuentaAcceso`, separadas de `Usuario`, y las sesiones cifradas en `SesionUsuario`. Las migraciones `1792771200005-CrearSesionUsuario` y `1792771200006-CrearCuentaAcceso` crean esas tablas; el JWT se cifra con AES-256-GCM usando `TOKEN_ENCRYPTION_KEY`. Los usuarios bigint existentes de `Usuario` no se modifican. El aprovisionamiento de ESP32 y la recepción de telemetría utilizan repositorios y transacciones persistentes. Consultar [controllers](../controllers/README.md) y [telemetría](../telemetry/README.md).
 
 [Configuración del entorno](../config/README.md) · [Usuarios](../users/README.md) · [Volver al README principal](../../README.md).

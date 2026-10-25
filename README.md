@@ -44,7 +44,7 @@ La prueba HTTP de ESP32 y la prueba de migraciones utilizan esquemas aislados co
 
 ## Alcance actual
 
-Los controladores ESP32, sus credenciales y las mediciones tienen persistencia PostgreSQL. Usuarios y sesiones humanos todavía se almacenan en memoria y se pierden al reiniciar. El proyecto sigue en desarrollo.
+Los controladores ESP32, sus credenciales, las cuentas de acceso y las sesiones tienen persistencia PostgreSQL. Los límites de solicitudes y algunos vínculos de monitoreo siguen en memoria. El proyecto sigue en desarrollo.
 
 El modo en vivo usa WebSocket para el ESP32 y Socket.IO para los clientes de usuario, con concesiones temporales por sensor y permisos por invernadero. El firmware Arduino se mantiene en el proyecto independiente `esp32__client`; completar los drivers físicos y validar el sketch en Arduino IDE antes de conectarlo a hardware real.
 

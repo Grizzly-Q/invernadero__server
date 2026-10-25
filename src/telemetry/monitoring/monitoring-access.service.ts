@@ -13,7 +13,7 @@ import { SensorEntity } from '../entities/sensor.entity';
 /** Autoriza sensores por asignación real, sin equiparar UUID temporales con bigint de PostgreSQL. */
 @Injectable()
 export class MonitoringAccessService {
-  // La asociación tiene el mismo ciclo de vida que las cuentas humanas actuales, que siguen en memoria.
+  // La vinculación legacy sigue en memoria aunque las cuentas de acceso ya estén persistidas.
   private readonly identities = new Map<string, string>();
 
   constructor(
@@ -26,7 +26,7 @@ export class MonitoringAccessService {
     userId: string,
     databaseUserId: string,
   ): Promise<{ userId: string; databaseUserId: string }> {
-    const user = this.users.findById(userId);
+    const user = await this.users.findById(userId);
     if (!user) throw new NotFoundException('Usuario de la API no encontrado.');
     if (user.role !== Role.OPERATOR)
       throw new ForbiddenException(

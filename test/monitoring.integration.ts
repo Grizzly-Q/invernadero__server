@@ -188,6 +188,7 @@ async function main(): Promise<void> {
               ADMIN_PASSWORD: 'Clave-ficticia-segura-123',
               auth: {
                 secret: 'secreto-ficticio-exclusivo-de-pruebas-123',
+                tokenEncryptionKey: Buffer.alloc(32, 7),
                 issuer: 'prueba',
                 audience: 'prueba',
                 accessTtl: 900,

@@ -15,6 +15,7 @@ La primera migración reconoce una base existente; no crea nuevamente las tablas
 | 3     | `CrearCredencialControlador1792771200002` | Crea credenciales con hashes únicos, fechas y RLS.                                              |
 | 4     | `AdaptarMedicion1792771200003`            | Añade identidad propia y deduplicación; separa medición y recepción.                            |
 | 5     | `NormalizarFechasPorDefecto1792771200004` | Alinea los valores por defecto con la representación equivalente `now()` utilizada por TypeORM. |
+| 6     | `CrearCuentaAcceso1792771200006`          | Crea cuentas persistentes para el registro/login de la API, separadas de `public.Usuario`. |
 
 TypeORM registra cada ejecución en `public.typeorm_migrations`. Sus columnas internas `id`, `timestamp` y `name` son administradas por TypeORM y constituyen la excepción técnica a `campo_Tabla`. `timestamp` identifica la versión de la migración; no registra su hora real de ejecución.
 
@@ -94,4 +95,4 @@ Las tablas nuevas de credenciales y del historial tienen RLS activado y carecen 
 
 El esquema admite hashes SHA-256 hexadecimales de claves aleatorias de alta entropía, revocación, vencimiento y varias credenciales por equipo para permitir rotación. No se generan claves durante estas migraciones.
 
-Los endpoints de aprovisionamiento, verificación de credenciales y recepción de telemetría se documentan en [controllers](../../controllers/README.md) y [telemetría](../../telemetry/README.md). La autenticación de usuarios y sus sesiones sigue en memoria.
+Los endpoints de aprovisionamiento, verificación de credenciales y recepción de telemetría se documentan en [controllers](../../controllers/README.md) y [telemetría](../../telemetry/README.md). Las cuentas de autenticación se crean con `CrearCuentaAcceso1792771200006`; las sesiones usan `CrearSesionUsuario1792771200005`.

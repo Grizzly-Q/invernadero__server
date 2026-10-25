@@ -5,7 +5,7 @@ import type { PublicUser } from './user.types';
 import { UsersService } from './users.service';
 
 /**
- * Consulta administrativa de las cuentas humanas de la API, almacenadas actualmente en memoria.
+ * Consulta las cuentas humanas de la API persistidas en PostgreSQL.
  * Todas las rutas requieren Authorization: Bearer con JWT de un usuario ADMIN.
  * No representa la tabla Usuario de PostgreSQL ni los controladores ESP32.
  */
@@ -15,15 +15,14 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   /**
-   * GET /users: lista los perfiles de todas las cuentas humanas presentes en esta instancia.
+   * GET /users: lista los perfiles de todas las cuentas humanas registradas.
    * No recibe parámetros, filtros ni paginación y no modifica los registros.
    * @returns HTTP 200 con un arreglo de { id, name, email, role }, sin contraseñas ni hashes.
-   * El arreglo puede estar vacío y no incluye usuarios que existan solamente en PostgreSQL.
    * @throws UnauthorizedException (401) si falta un JWT válido con sesión vigente.
    * @throws ForbiddenException (403) si el usuario autenticado no tiene rol ADMIN.
    */
   @Get()
-  findAll(): PublicUser[] {
+  findAll(): Promise<PublicUser[]> {
     return this.users.findAll();
   }
 }

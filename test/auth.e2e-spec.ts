@@ -1,30 +1,45 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import type { App } from 'supertest/types';
+import { In } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import type { AccessClaims, TokenResponse } from '../src/auth/auth.types';
+import { UserSessionEntity } from '../src/auth/entities/user-session.entity';
 import { configureApp } from '../src/configure-app';
+import { UserAccountEntity } from '../src/users/entities/user-account.entity';
 import { Role } from '../src/users/role.enum';
 
 describe('Autenticación JWT y autorización (e2e)', () => {
   let app: INestApplication<App>;
   let originalEnvironment: NodeJS.ProcessEnv;
-  const credentials = {
-    name: 'Usuario Android',
-    email: 'usuario@example.com',
-    password: 'Una-clave-segura-123',
+  let credentials: {
+    name: string;
+    email: string;
+    password: string;
   };
+  let adminEmail: string;
+  const password = 'Una-clave-segura-123';
 
   beforeEach(async () => {
+    const testId = randomUUID();
+    credentials = {
+      name: 'Usuario Android',
+      email: `usuario-${testId}@example.com`,
+      password,
+    };
+    adminEmail = `admin-${testId}@example.com`;
     originalEnvironment = { ...process.env };
     process.env.JWT_SECRET = 'secreto-exclusivo-de-pruebas-con-32-bytes';
     process.env.TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
     process.env.JWT_ISSUER = 'invernadero-api';
     process.env.JWT_AUDIENCE = 'invernadero-android';
     process.env.JWT_ACCESS_TTL_SECONDS = '900';
-    process.env.ADMIN_EMAIL = 'admin@example.com';
+    process.env.ADMIN_EMAIL = adminEmail;
     process.env.ADMIN_PASSWORD = 'Admin-seguro-123';
     const module = await Test.createTestingModule({
       imports: [AppModule],
@@ -36,6 +51,23 @@ describe('Autenticación JWT y autorización (e2e)', () => {
 
   afterEach(async () => {
     jest.restoreAllMocks();
+    if (app) {
+      const accounts = app.get<Repository<UserAccountEntity>>(
+        getRepositoryToken(UserAccountEntity),
+      );
+      const sessions = app.get<Repository<UserSessionEntity>>(
+        getRepositoryToken(UserSessionEntity),
+      );
+      const testAccounts = await accounts.find({
+        where: { email: In([credentials.email, adminEmail]) },
+        select: { id: true },
+      });
+      const ids = testAccounts.map(({ id }) => id);
+      if (ids.length) {
+        await sessions.delete({ userId: In(ids) });
+        await accounts.delete({ id: In(ids) });
+      }
+    }
     await app?.close();
     process.env = originalEnvironment;
   });
@@ -91,7 +123,7 @@ describe('Autenticación JWT y autorización (e2e)', () => {
     const unknownUser = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'desconocido@example.com',
+        email: `desconocido-${randomUUID()}@example.com`,
         password: credentials.password,
       })
       .expect(401);
@@ -176,14 +208,22 @@ describe('Autenticación JWT y autorización (e2e)', () => {
       .expect(403);
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@example.com', password: 'Admin-seguro-123' })
+      .send({ email: adminEmail, password: 'Admin-seguro-123' })
       .expect(200);
     const admin = response.body as TokenResponse;
     const users = await request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${admin.accessToken}`)
       .expect(200);
-    expect(users.body).toHaveLength(2);
+    expect(users.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          email: credentials.email,
+          role: Role.OPERATOR,
+        }),
+        expect.objectContaining({ email: adminEmail, role: Role.ADMIN }),
+      ]),
+    );
     expect(JSON.stringify(users.body)).not.toContain('password');
   });
 

@@ -73,6 +73,7 @@ async function main(): Promise<void> {
               ADMIN_PASSWORD: 'Prueba-admin-segura-123',
               auth: {
                 secret: 'secreto-exclusivo-de-pruebas-con-32-bytes',
+                tokenEncryptionKey: Buffer.alloc(32, 7),
                 issuer: 'prueba-api',
                 audience: 'prueba-android',
                 accessTtl: 900,

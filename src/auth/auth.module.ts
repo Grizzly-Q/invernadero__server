@@ -15,12 +15,13 @@ import { ControllerThrottlerGuard } from './guards/controller-throttler.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PasswordService } from './password.service';
 import { UserSessionEntity } from './entities/user-session.entity';
+import { UserAccountEntity } from '../users/entities/user-account.entity';
 
 /** Registra identidades de usuarios y equipos, roles y límites por IP y controlador. */
 @Module({
   imports: [
     ControllersModule,
-    TypeOrmModule.forFeature([UserSessionEntity]),
+    TypeOrmModule.forFeature([UserSessionEntity, UserAccountEntity]),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

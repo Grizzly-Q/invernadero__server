@@ -3,6 +3,7 @@ import type { DataSourceOptions } from 'typeorm';
 import { ControllerEntity } from '../controllers/entities/controller.entity';
 import { ControllerCredentialEntity } from '../controllers/entities/controller-credential.entity';
 import { UserSessionEntity } from '../auth/entities/user-session.entity';
+import { UserAccountEntity } from '../users/entities/user-account.entity';
 import { SensorEntity } from '../telemetry/entities/sensor.entity';
 import { MeasurementEntity } from '../telemetry/entities/measurement.entity';
 import { GreenhouseEntity } from './entities/greenhouse.entity';
@@ -24,6 +25,7 @@ export function databaseOptions(
       ControllerEntity,
       ControllerCredentialEntity,
       UserSessionEntity,
+      UserAccountEntity,
       SensorEntity,
       MeasurementEntity,
     ],

@@ -36,9 +36,12 @@ class EnvironmentVariables {
   })
   JWT_SECRET?: string;
 
-  @IsBase64({
-    message: 'TOKEN_ENCRYPTION_KEY debe ser una cadena Base64 válida.',
-  })
+  @IsBase64(
+    {},
+    {
+      message: 'TOKEN_ENCRYPTION_KEY debe ser una cadena Base64 válida.',
+    },
+  )
   TOKEN_ENCRYPTION_KEY?: string;
 }
 

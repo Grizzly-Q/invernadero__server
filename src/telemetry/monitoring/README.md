@@ -115,7 +115,7 @@ El código para Arduino IDE se mantiene en el proyecto independiente `esp32__cli
 
 Todos los espectadores de un sensor comparten una única orden. Se solicita la frecuencia más rápida de los interesados. Salir uno no interrumpe a los demás; salir el último envía stop. Si el ESP32 se desconecta, todas las suscripciones afectadas finalizan; reconectar no las restaura implícitamente.
 
-ADMIN puede solicitar cualquier sensor de un equipo activo conectado. OPERATOR necesita una asociación administrativa explícita con un Usuario PostgreSQL y una fila válida de `UsuarioInvernadero`. Mientras las cuentas de la API sigan en memoria, un administrador vincula su UUID con el bigint existente:
+ADMIN puede solicitar cualquier sensor de un equipo activo conectado. OPERATOR necesita una asociación administrativa explícita con un Usuario PostgreSQL y una fila válida de `UsuarioInvernadero`. Un administrador vincula el UUID persistido de la cuenta con el bigint existente:
 
 ```http
 PUT /monitoring/users/<uuid-de-la-api>/database-identity
@@ -125,7 +125,7 @@ Content-Type: application/json
 { "databaseUserId": "1" }
 ```
 
-La cuenta PostgreSQL debe existir y tener rol `Operador`; no se crean usuarios ni asignaciones desde este endpoint. Un mismo Usuario PostgreSQL no puede vincularse simultáneamente a dos cuentas. `DELETE` sobre esa ruta retira la asociación. El vínculo también vive en memoria y debe rehacerse después de reiniciar, igual que las cuentas y sesiones actuales. No se intenta convertir un UUID en bigint ni conceder acceso automáticamente por correo o nombre.
+La cuenta PostgreSQL debe existir y tener rol `Operador`; no se crean usuarios ni asignaciones desde este endpoint. Un mismo Usuario PostgreSQL no puede vincularse simultáneamente a dos cuentas. `DELETE` sobre esa ruta retira la asociación. El vínculo sigue en memoria y debe rehacerse después de reiniciar. No se intenta convertir un UUID en bigint ni conceder acceso automáticamente por correo o nombre.
 
 El JWT se revalida antes de cada lectura entregada; la asignación también se consulta nuevamente. Las credenciales del equipo se revalidan en cada mensaje y todas las conexiones silenciosas se revisan aproximadamente cada segundo, sujeto al tiempo de respuesta de PostgreSQL. Logout, revocación, rotación, bloqueo o retirada de permisos cierran el acceso; no basta con autenticar al abrir el socket.
 

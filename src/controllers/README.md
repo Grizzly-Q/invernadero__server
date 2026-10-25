@@ -81,7 +81,7 @@ La comunicación válida actualiza `ultimaComunicacionEn_Controlador` y marca `C
 
 Se mantienen un ESP32 por invernadero y un sensor por tipo/controlador ESP32. Los tipos son `HumedadAmbiental`, `HumedadSuelo` y `NivelAgua`. No se activan controladores ESP32 reales ni se generan claves al arrancar la API.
 
-Los usuarios y sesiones humanos siguen en memoria. Configurar el administrador inicial según la [guía de configuración](../config/README.md). Los límites por IP y controlador ESP32 también viven en memoria y se reinician con el proceso.
+Las cuentas y sesiones humanas se guardan en PostgreSQL. Configurar el administrador inicial según la [guía de configuración](../config/README.md). Los límites por IP y controlador ESP32 viven en memoria y se reinician con el proceso.
 
 ## Pruebas
 

@@ -13,7 +13,7 @@ export class DbController {
    * No recibe parámetros y no devuelve registros individuales ni contraseñas.
    * @returns HTTP 200 con { hora, total }: hora de PostgreSQL serializada como fecha ISO
    * y cantidad de filas de public.Usuario como cadena decimal, no como número JavaScript.
-   * Este conteo no corresponde al almacén de cuentas humanas en memoria de la API.
+   * Este conteo corresponde a public.Usuario, no a las cuentas de acceso de CuentaAcceso.
    * @throws Error de PostgreSQL si falla la conexión o el acceso a la tabla;
    * al no traducirse aquí, el manejador global responde HTTP 500.
    */

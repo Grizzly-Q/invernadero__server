@@ -81,7 +81,7 @@ El guard utiliza el rol actual obtenido por el servidor, no un rol enviado por A
 
 El servidor puede asignar un rol con `UsersService.create(nombre, correo, contraseña, Role.ADMIN)`; para crear el Administrador inicial se usan las variables descritas en la [configuración](../config/README.md). Todavía no hay un endpoint para cambiar roles.
 
-Actualmente los permisos se expresan mediante listas de roles por endpoint. No existe un catálogo de permisos individuales ni políticas de PostgreSQL/Supabase generadas por estos roles. Los usuarios y sus roles siguen almacenados en memoria.
+Actualmente los permisos globales se expresan mediante listas de roles por endpoint. Las cuentas y sus roles globales se persisten en `CuentaAcceso`; los roles por invernadero y sus membresías no forman parte de este cambio. No existe un catálogo de permisos individuales ni políticas de PostgreSQL/Supabase generadas por estos roles.
 
 Las pruebas de `roles.guard.spec.ts` comprueban rutas individuales, compartidas, herencia y ausencia de privilegios implícitos.
 

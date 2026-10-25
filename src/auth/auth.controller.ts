@@ -20,7 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 /**
  * Autenticación de usuarios humanos mediante JWT Bearer, sin cookies ni credenciales de ESP32.
  * register y login son públicos; me y logout exigen una sesión vigente, sin restricción de rol.
- * La sesión se persiste en PostgreSQL; las cuentas de usuario siguen en memoria.
+ * Las cuentas y sesiones se persisten en PostgreSQL.
  * La validación de los cuerpos rechaza campos adicionales y formatos inválidos con HTTP 400.
  */
 @Controller('auth')
