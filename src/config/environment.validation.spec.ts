@@ -6,7 +6,6 @@ describe('Validación de variables de entorno', () => {
   const validEnvironment = {
     DATABASE_URL: 'postgresql://usuario:clave@localhost:5432/invernadero',
     JWT_SECRET: 'secreto-exclusivo-de-pruebas-con-32-bytes',
-    TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   };
 
   it.each(['postgres', 'postgresql'])(

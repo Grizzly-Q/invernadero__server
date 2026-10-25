@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { ControllersModule } from '../controllers/controllers.module';
-import { MonitoringAdminController } from './monitoring/monitoring-admin.controller';
+import { GreenhousesModule } from '../greenhouses/greenhouses.module';
 import { MonitoringAccessService } from './monitoring/monitoring-access.service';
 import { MonitoringService } from './monitoring/monitoring.service';
 import { MonitoringTransport } from './monitoring/monitoring.transport';
@@ -12,12 +12,8 @@ import { HistoryService } from './history.service';
 
 /** Agrupa el historial de mediciones y el monitoreo en vivo con sus respectivas autorizaciones. */
 @Module({
-  imports: [AuthModule, ControllersModule],
-  controllers: [
-    TelemetryController,
-    HistoryController,
-    MonitoringAdminController,
-  ],
+  imports: [AuthModule, ControllersModule, GreenhousesModule],
+  controllers: [TelemetryController, HistoryController],
   providers: [
     TelemetryService,
     HistoryService,

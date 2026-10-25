@@ -1,4 +1,4 @@
-/** Roles de usuarios humanos: Administrador y Operador, sin jerarquía implícita. */
+/** Roles de pertenencia a un invernadero; no son atributos globales de la cuenta. */
 export enum Role {
   ADMIN = 'ADMIN',
   OPERATOR = 'OPERATOR',

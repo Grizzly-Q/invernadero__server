@@ -1,151 +1,161 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import type { ConfigService } from '@nestjs/config';
-import type { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { createHash } from 'node:crypto';
 import type { Repository } from 'typeorm';
-import type { AuthConfig } from '../config/auth.config';
+import { authConfig } from '../config/auth.config';
 import type { UsersService } from '../users/users.service';
-import type { PublicUser } from '../users/user.types';
-import type { PasswordService } from './password.service';
 import { AuthService } from './auth.service';
-import type { UserSessionEntity } from './entities/user-session.entity';
+import type { PasswordService } from './password.service';
+import { UserSessionEntity } from './entities/user-session.entity';
 
-const user: PublicUser = {
-  id: 'usuario-uuid',
-  name: 'Ana',
-  email: 'ana@example.com',
-  role: 'OPERATOR' as PublicUser['role'],
-};
-
-describe('AuthService: sesiones', () => {
-  const sessions = {
-    delete: jest.fn(),
-    findOneBy: jest.fn(),
-    save: jest.fn(),
+/** Prueba tokens firmados reales y persistencia simulada; PostgreSQL se valida en integración por separado. */
+describe('Sesiones persistentes y renovación', () => {
+  const user = {
+    id: '176a8936-3d4e-41ef-b313-153404cd3210',
+    name: 'Ana',
+    email: 'ana@example.com',
   };
-  const users = {
-    create: jest.fn(),
-    findById: jest.fn(),
-  };
-  const passwords = { verify: jest.fn() };
-  const jwt = { sign: jest.fn(), verifyAsync: jest.fn() };
-  const config = {
-    getOrThrow: jest.fn((): AuthConfig => ({
-      secret: 'test-secret',
-      tokenEncryptionKey: Buffer.alloc(32, 7),
-      issuer: 'test-issuer',
-      audience: 'test-audience',
-      accessTtl: 900,
-    })),
-  };
+  const options = authConfig({
+    JWT_SECRET: 'secreto-de-prueba-con-mas-de-32-bytes',
+  });
+  const jwt = new JwtService({
+    secret: options.secret,
+    signOptions: {
+      algorithm: 'HS256',
+      issuer: options.issuer,
+      audience: options.audience,
+    },
+  });
+  let rows: Map<string, UserSessionEntity>;
   let auth: AuthService;
-
+  let repository: Record<string, unknown>;
+  const users = { create: jest.fn(), findById: jest.fn() };
   beforeEach(() => {
-    jest.resetAllMocks();
-    config.getOrThrow.mockReturnValue({
-      secret: 'test-secret',
-      tokenEncryptionKey: Buffer.alloc(32, 7),
-      issuer: 'test-issuer',
-      audience: 'test-audience',
-      accessTtl: 900,
-    });
+    rows = new Map();
     users.create.mockResolvedValue(user);
-    users.findById.mockReturnValue(user);
-    jwt.sign.mockReturnValue('signed-jwt');
-    sessions.delete.mockResolvedValue({ affected: 1 });
-    sessions.save.mockImplementation((session: UserSessionEntity) => session);
+    users.findById.mockResolvedValue(user);
+    repository = {
+      save: jest.fn((row: UserSessionEntity) => {
+        rows.set(row.id, row);
+        return Promise.resolve(row);
+      }),
+      findOneBy: jest.fn(({ id }: { id: string }) =>
+        Promise.resolve(rows.get(id) ?? null),
+      ),
+      findOne: jest.fn(({ where }: { where: { id: string } }) =>
+        Promise.resolve(rows.get(where.id) ?? null),
+      ),
+      update: jest.fn(
+        ({ id }: { id: string }, changes: Partial<UserSessionEntity>) => {
+          const row = rows.get(id);
+          if (row) Object.assign(row, changes);
+          return Promise.resolve();
+        },
+      ),
+      manager: {
+        transaction: (work: (manager: unknown) => unknown) =>
+          Promise.resolve(work({ getRepository: () => repository })),
+      },
+    };
     auth = new AuthService(
       users as unknown as UsersService,
-      passwords as unknown as PasswordService,
-      jwt as unknown as JwtService,
-      config as unknown as ConfigService,
-      sessions as unknown as Repository<UserSessionEntity>,
+      {} as PasswordService,
+      jwt,
+      new ConfigService({ auth: options }),
+      repository as unknown as Repository<UserSessionEntity>,
     );
   });
-
-  it('guarda el JWT cifrado y no el token en texto plano', async () => {
-    const response = await auth.register({
+  const register = () =>
+    auth.register({
       name: user.name,
       email: user.email,
-      password: 'secure-password',
+      password: 'Clave-segura-123',
     });
 
-    expect(response.accessToken).toBe('signed-jwt');
-    expect(sessions.save).toHaveBeenCalledWith({
-      id: expect.any(String),
-      userId: user.id,
-      encryptedToken: expect.any(String),
-      expiresAt: expect.any(Date),
-    });
-    expect(sessions.save.mock.calls[0][0]).not.toHaveProperty('token');
-    expect(sessions.save.mock.calls[0][0].encryptedToken).not.toBe(
-      'signed-jwt',
+  it('guarda solo el hash del refresh y autentica accesos tras reconstruir el servicio', async () => {
+    const tokens = await register();
+    const row = [...rows.values()][0];
+    expect(row.refreshHash).toBe(
+      createHash('sha256').update(tokens.refreshToken).digest('hex'),
     );
-    expect(sessions.save.mock.calls[0][0].encryptedToken).not.toContain(
-      'signed-jwt',
+    expect(JSON.stringify(row)).not.toContain(tokens.refreshToken);
+    const restarted = new AuthService(
+      users as unknown as UsersService,
+      {} as PasswordService,
+      jwt,
+      new ConfigService({ auth: options }),
+      repository as unknown as Repository<UserSessionEntity>,
     );
-  });
-
-  it('descifra y autentica solo si la sesión correspondiente sigue vigente', async () => {
-    const expiresAt = new Date(Date.now() + 60_000);
-    const response = await auth.register({
-      name: user.name,
-      email: user.email,
-      password: 'secure-password',
-    });
-    const session = sessions.save.mock.calls[0][0];
-    session.expiresAt = expiresAt;
-    sessions.findOneBy.mockResolvedValue(session);
-    jwt.verifyAsync.mockResolvedValue({
-      sub: user.id,
-      sid: session.id,
-      type: 'access',
-      exp: Math.floor(expiresAt.getTime() / 1000),
-    });
-
-    await expect(auth.authenticate(response.accessToken)).resolves.toEqual({
+    await expect(restarted.authenticate(tokens.accessToken)).resolves.toEqual({
       user,
-      sessionId: session.id,
-    });
-    expect(sessions.findOneBy).toHaveBeenCalledWith({
-      id: session.id,
-      userId: user.id,
+      sessionId: row.id,
     });
   });
 
-  it('rechaza una sesión cuyo token cifrado fue alterado', async () => {
-    const expiresAt = new Date(Date.now() + 60_000);
-    jwt.verifyAsync.mockResolvedValue({
-      sub: user.id,
-      sid: 'session-uuid',
-      type: 'access',
-      exp: Math.floor(expiresAt.getTime() / 1000),
-    });
-    sessions.findOneBy.mockResolvedValue({
-      id: 'session-uuid',
-      userId: user.id,
-      encryptedToken: 'Y2lwaGVydGV4dG8=',
-      expiresAt,
-    });
-
-    await expect(auth.authenticate('signed-jwt')).rejects.toThrow(
+  it('renueva aunque el acceso venció, rota refresh y mantiene el vencimiento absoluto', async () => {
+    const first = await register();
+    const row = [...rows.values()][0];
+    const expired = jwt.sign(
+      { sub: user.id, sid: row.id, type: 'access' },
+      { expiresIn: -1 },
+    );
+    await expect(auth.authenticate(expired)).rejects.toThrow(
       UnauthorizedException,
+    );
+    const next = await auth.refresh(first.refreshToken);
+    expect(next.refreshToken).not.toBe(first.refreshToken);
+    expect(next.refreshExpiresAt).toEqual(first.refreshExpiresAt);
+    await expect(auth.authenticate(next.accessToken)).resolves.toHaveProperty(
+      'user.id',
+      user.id,
     );
   });
 
-  it('rechaza sesiones revocadas y elimina la sesión al cerrar sesión', async () => {
-    jwt.verifyAsync.mockResolvedValue({
-      sub: user.id,
-      sid: 'session-uuid',
-      type: 'access',
-      exp: Math.floor(Date.now() / 1000) + 60,
-    });
-    sessions.findOneBy.mockResolvedValue(null);
-
-    await expect(auth.authenticate('signed-jwt')).rejects.toThrow(
+  it('reutilizar un refresh anterior revoca también el nuevo refresh y los accesos', async () => {
+    const first = await register();
+    const next = await auth.refresh(first.refreshToken);
+    await expect(auth.refresh(first.refreshToken)).rejects.toThrow(
       UnauthorizedException,
     );
-    await auth.logout('session-uuid');
-    expect(sessions.delete).toHaveBeenLastCalledWith({ id: 'session-uuid' });
+    await expect(auth.refresh(next.refreshToken)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    await expect(auth.authenticate(next.accessToken)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect([...rows.values()][0].revokedAt).toBeInstanceOf(Date);
+  });
+
+  it('rechaza tipos cruzados y tokens alterados sin revocar la sesión legítima', async () => {
+    const tokens = await register();
+    await expect(auth.refresh(tokens.accessToken)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    await expect(auth.authenticate(tokens.refreshToken)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    await expect(auth.refresh(tokens.refreshToken + 'x')).rejects.toThrow(
+      UnauthorizedException,
+    );
+    await expect(auth.authenticate(tokens.accessToken)).resolves.toHaveProperty(
+      'user',
+    );
+  });
+
+  it('rechaza sesiones vencidas y revoca únicamente la sesión solicitada', async () => {
+    const first = await register();
+    const second = await register();
+    await auth.logoutWithRefresh(first.refreshToken);
+    await expect(auth.authenticate(first.accessToken)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    await expect(auth.authenticate(second.accessToken)).resolves.toHaveProperty(
+      'user',
+    );
+    [...rows.values()][1].expiresAt = new Date(0);
+    await expect(auth.refresh(second.refreshToken)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

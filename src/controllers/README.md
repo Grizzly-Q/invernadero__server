@@ -4,7 +4,7 @@
 
 ## Autenticación
 
-La administración exige JWT con rol `ADMIN`. Cada ESP32 usa una clave `esp32_<43 caracteres Base64URL>`, generada con 32 bytes aleatorios criptográficos, enviada mediante HTTPS en `Authorization: Bearer <credencial>`.
+La administración exige JWT y pertenencia `ADMIN` en el invernadero propietario del equipo. El listado solo incluye equipos de invernaderos administrados por esa cuenta. Cada ESP32 usa una clave `esp32_<43 caracteres Base64URL>`, generada con 32 bytes aleatorios criptográficos, enviada mediante HTTPS en `Authorization: Bearer <credencial>`.
 
 La clave original aparece únicamente al emitirla. PostgreSQL guarda su SHA-256 hexadecimal; los repositorios no seleccionan ese campo por defecto y las respuestas nunca lo exponen. Se utiliza `Cache-Control: no-store`. No registrar claves ni encabezados Authorization en logs.
 
@@ -81,7 +81,7 @@ La comunicación válida actualiza `ultimaComunicacionEn_Controlador` y marca `C
 
 Se mantienen un ESP32 por invernadero y un sensor por tipo/controlador ESP32. Los tipos son `HumedadAmbiental`, `HumedadSuelo` y `NivelAgua`. No se activan controladores ESP32 reales ni se generan claves al arrancar la API.
 
-Los usuarios y sesiones humanos siguen en memoria. Configurar el administrador inicial según la [guía de configuración](../config/README.md). Los límites por IP y controlador ESP32 también viven en memoria y se reinician con el proceso.
+Los usuarios y sesiones humanos se persisten en PostgreSQL. El arranque no crea administradores: el creador de un invernadero recibe la pertenencia ADMIN solo en ese invernadero. Los límites por IP y controlador ESP32 también viven en memoria y se reinician con el proceso.
 
 ## Pruebas
 

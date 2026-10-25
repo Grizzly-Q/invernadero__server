@@ -1,7 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import {
   IsByteLength,
-  IsBase64,
   IsString,
   IsUrl,
   Matches,
@@ -35,11 +34,6 @@ class EnvironmentVariables {
     message: 'JWT_SECRET no puede estar vacío ni contener únicamente espacios.',
   })
   JWT_SECRET?: string;
-
-  @IsBase64({
-    message: 'TOKEN_ENCRYPTION_KEY debe ser una cadena Base64 válida.',
-  })
-  TOKEN_ENCRYPTION_KEY?: string;
 }
 
 /**

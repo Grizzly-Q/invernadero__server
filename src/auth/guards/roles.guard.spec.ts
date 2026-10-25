@@ -1,114 +1,71 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContextHost } from '@nestjs/core/helpers/execution-context-host';
+import type { DataSource } from 'typeorm';
+import type { GreenhouseAccessService } from '../../greenhouses/greenhouse-access.service';
 import { Role } from '../../users/role.enum';
 import { Roles } from '../decorators/roles.decorator';
+import { ControllerScope } from '../decorators/controller-scope.decorator';
 import { RolesGuard } from './roles.guard';
 
-/** Controlador de prueba para comprobar la metadata real del decorador. */
+@ControllerScope()
 @Roles(Role.ADMIN)
-class RestrictedController {
-  inherited(this: void) {
-    return true;
-  }
-
-  @Roles(Role.ADMIN)
-  admin(this: void) {
-    return true;
-  }
-
-  @Roles(Role.OPERATOR)
-  operator(this: void) {
-    return true;
-  }
-
-  @Roles(Role.OPERATOR)
-  shared(this: void) {
-    return true;
-  }
-
-  @Roles(Role.ADMIN, Role.OPERATOR)
-  all(this: void) {
-    return true;
-  }
-
-  @Roles()
-  authenticated(this: void) {
-    return true;
-  }
+class Routes {
+  admin(this: void) {}
+  @Roles() list(this: void) {}
 }
 
-describe('Autorización por roles', () => {
-  const guard = new RolesGuard(new Reflector());
-
-  /** Construye el contexto posterior al guard JWT con un rol o sin identidad. */
-  function context(method: keyof RestrictedController, role?: Role) {
-    return new ExecutionContextHost(
-      [{ user: role ? { role } : undefined }],
-      RestrictedController,
-      RestrictedController.prototype[method],
-    );
-  }
-
-  const individualRoutes = [
-    { method: 'admin', allowed: Role.ADMIN },
-    { method: 'operator', allowed: Role.OPERATOR },
-  ] as const;
-
-  describe.each(individualRoutes)(
-    'ruta exclusiva $method',
-    ({ method, allowed }) => {
-      it.each(Object.values(Role))(
-        'evalúa el rol %s sin privilegios implícitos',
-        (role) => {
-          if (role === allowed) {
-            expect(guard.canActivate(context(method, role))).toBe(true);
-          } else {
-            expect(() => guard.canActivate(context(method, role))).toThrow(
-              ForbiddenException,
-            );
-          }
-        },
-      );
-    },
+/** Comprueba la resolución del recurso y el rechazo de privilegios de otro invernadero. */
+describe('Roles por invernadero', () => {
+  const access = { require: jest.fn() };
+  const repository = { findOneBy: jest.fn() };
+  const source = { getRepository: () => repository };
+  const guard = new RolesGuard(
+    new Reflector(),
+    access as unknown as GreenhouseAccessService,
+    source as unknown as DataSource,
   );
-
-  it.each([Role.OPERATOR])(
-    'acepta %s cuando la ruta admite Operador',
-    (role) => {
-      expect(guard.canActivate(context('shared', role))).toBe(true);
-    },
-  );
-
-  it('rechaza al Administrador cuando no está en la lista de la ruta', () => {
-    expect(() => guard.canActivate(context('shared', Role.ADMIN))).toThrow(
-      ForbiddenException,
-    );
+  const context = (method: keyof Routes, request: unknown) =>
+    new ExecutionContextHost([request], Routes, Routes.prototype[method]);
+  beforeEach(() => {
+    jest.resetAllMocks();
+    repository.findOneBy.mockResolvedValue({ greenhouseId: '2' });
+    access.require.mockResolvedValue(Role.ADMIN);
   });
-
-  it.each(Object.values(Role))(
-    'admite %s cuando se declaran ambos roles',
-    (role) => {
-      expect(guard.canActivate(context('all', role))).toBe(true);
-    },
-  );
-
-  it('hereda los roles del controlador si el método no declara otros', () => {
-    expect(guard.canActivate(context('inherited', Role.ADMIN))).toBe(true);
-    expect(() =>
-      guard.canActivate(context('inherited', Role.OPERATOR)),
-    ).toThrow(ForbiddenException);
+  it('resuelve el invernadero real del controlador e ignora un rol o invernadero enviados en el cuerpo', async () => {
+    await expect(
+      guard.canActivate(
+        context('admin', {
+          user: { id: 'ana', role: 'ADMIN' },
+          params: { id: '1' },
+          body: { greenhouseId: '99' },
+        }),
+      ),
+    ).resolves.toBe(true);
+    expect(access.require).toHaveBeenCalledWith('ana', '2', [Role.ADMIN]);
   });
-
-  it('permite cualquier rol autenticado cuando el método declara una lista vacía', () => {
-    expect(guard.canActivate(context('authenticated', Role.OPERATOR))).toBe(
-      true,
-    );
+  it('rechaza al administrador de otro invernadero y al operador sin ejecutar la operación', async () => {
+    access.require.mockRejectedValue(new ForbiddenException());
+    await expect(
+      guard.canActivate(
+        context('admin', { user: { id: 'ana' }, params: { id: '1' } }),
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
-
-  it('rechaza una identidad ausente en una ruta con roles', () => {
-    expect(() => guard.canActivate(context('admin'))).toThrow(
-      ForbiddenException,
+  it('comprueba el invernadero al registrar un equipo', async () => {
+    await guard.canActivate(
+      context('admin', {
+        user: { id: 'ana' },
+        params: {},
+        body: { greenhouseId: '3' },
+      }),
     );
+    expect(access.require).toHaveBeenCalledWith('ana', '3', [Role.ADMIN]);
+  });
+  it('permite la ruta de listado que aplica su propio filtro de pertenencias', async () => {
+    await expect(
+      guard.canActivate(context('list', { user: { id: 'ana' } })),
+    ).resolves.toBe(true);
+    expect(access.require).not.toHaveBeenCalled();
   });
 });

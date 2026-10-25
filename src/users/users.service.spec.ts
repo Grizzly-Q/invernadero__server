@@ -1,35 +1,42 @@
-import { ConfigService } from '@nestjs/config';
+import { ConflictException } from '@nestjs/common';
+import type { Repository } from 'typeorm';
 import { PasswordService } from '../auth/password.service';
-import { Role } from './role.enum';
 import { UsersService } from './users.service';
+import type { UserEntity } from './entities/user.entity';
 
-describe('Asignación de roles en el servidor', () => {
+/** Comprueba normalización, privacidad y traducción de las cuentas persistentes. */
+describe('Cuentas persistentes', () => {
+  const repository = {
+    create: jest.fn((row: unknown) => row),
+    save: jest.fn<Promise<UserEntity>, [UserEntity]>(),
+    findOneBy: jest.fn(),
+  };
   let users: UsersService;
-
   beforeEach(() => {
-    users = new UsersService(new PasswordService(), new ConfigService());
+    jest.clearAllMocks();
+    repository.save.mockImplementation((row) => Promise.resolve(row));
+    users = new UsersService(
+      new PasswordService(),
+      repository as unknown as Repository<UserEntity>,
+    );
   });
-
-  it('asigna Operador cuando no se indica un rol', async () => {
+  it('crea una identidad sin rol global y oculta el hash', async () => {
     const user = await users.create(
-      'Prueba',
-      'prueba@example.com',
+      'Ana',
+      ' ANA@example.com ',
       'Clave-segura-123',
     );
-    expect(user.role).toBe(Role.OPERATOR);
+    expect(user).toMatchObject({ email: 'ana@example.com' });
+    expect(user).not.toHaveProperty('role');
+    expect(user).not.toHaveProperty('passwordHash');
+    expect(repository.save.mock.calls[0][0]).not.toHaveProperty('role');
+    repository.findOneBy.mockResolvedValue(repository.save.mock.calls[0][0]);
+    await expect(users.findById(user.id)).resolves.toEqual(user);
   });
-
-  it.each(Object.values(Role))(
-    'conserva el rol %s asignado explícitamente por el servidor',
-    async (role) => {
-      const user = await users.create(
-        'Prueba',
-        'prueba@example.com',
-        'Clave-segura-123',
-        role,
-      );
-      expect(user.role).toBe(role);
-      expect(users.findById(user.id)?.role).toBe(role);
-    },
-  );
+  it('traduce el correo duplicado de PostgreSQL a conflicto', async () => {
+    repository.save.mockRejectedValue({ driverError: { code: '23505' } });
+    await expect(
+      users.create('Ana', 'ana@example.com', 'Clave-segura-123'),
+    ).rejects.toThrow(ConflictException);
+  });
 });

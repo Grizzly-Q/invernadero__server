@@ -1,7 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import type { AuthService } from '../../auth/auth.service';
 import type { ControllerCredentialsService } from '../../controllers/controller-credentials.service';
-import { Role } from '../../users/role.enum';
 import { SensorEntity } from '../entities/sensor.entity';
 import type { MonitoringAccessService } from './monitoring-access.service';
 import { MonitoringService } from './monitoring.service';
@@ -21,7 +20,7 @@ describe('Revocación durante la autorización de monitoreo', () => {
       authenticate: jest.fn(() =>
         valid
           ? Promise.resolve({
-              user: { id: 'usuario', role: Role.ADMIN },
+              user: { id: 'usuario' },
               sessionId: 'sesion',
             })
           : Promise.reject(new UnauthorizedException()),

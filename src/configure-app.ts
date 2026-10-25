@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import type { AuthConfig } from './config/auth.config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 
 /**
@@ -6,12 +8,12 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
  * @returns Sin contenido; modifica la configuración de la aplicación antes de iniciarla.
  */
 export function configureApp(app: INestApplication): void {
-  // React usa JWT en Authorization; no necesita cookies ni credenciales de sesión del navegador.
+  // Solo los orígenes explícitos pueden enviar la cookie de renovación desde React.
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: app.get(ConfigService).getOrThrow<AuthConfig>('auth').webOrigins,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
-    credentials: false,
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({

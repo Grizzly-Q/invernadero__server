@@ -59,17 +59,30 @@ export class ControllersService {
 
   /**
    * Consulta hasta 50 controladores ESP32 por id descendente, sin credenciales.
+   * @param userId UUID de la cuenta; se filtran sus pertenencias ADMIN.
    * @param beforeId Cursor bigint exclusivo opcional: solo incluye IDs menores.
    * @returns Perfiles públicos y nextBeforeId; el cursor es null cuando hay menos de 50 resultados.
    */
   async list(
+    userId: string,
     beforeId?: string,
   ): Promise<{ items: PublicController[]; nextBeforeId: string | null }> {
-    const rows = await this.source.getRepository(ControllerEntity).find({
-      where: beforeId ? { id: LessThan(beforeId) } : {},
-      order: { id: 'DESC' },
-      take: 50,
-    });
+    const schema = this.source.driver.escape(
+      this.source.options.type === 'postgres'
+        ? (this.source.options.schema ?? 'public')
+        : 'public',
+    );
+    const query = this.source
+      .getRepository(ControllerEntity)
+      .createQueryBuilder('c')
+      .where(
+        `EXISTS (SELECT 1 FROM ${schema}."UsuarioInvernadero" m JOIN ${schema}."Usuario" u ON u."idUsuario_Usuario" = m."idUsuario_UsuarioInvernadero" WHERE u."uuid_Usuario" = :userId AND m."idInvernadero_UsuarioInvernadero" = c."idInvernadero_Controlador" AND m."rol_UsuarioInvernadero" = 'ADMIN')`,
+        { userId },
+      )
+      .orderBy('c.id', 'DESC')
+      .take(50);
+    if (beforeId) query.andWhere('c.id < :beforeId', { beforeId });
+    const rows = await query.getMany();
     return {
       items: rows.map(publicController),
       nextBeforeId: rows.length === 50 ? rows[49].id : null,

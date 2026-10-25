@@ -1,3 +1,5 @@
+import { DataSource } from 'typeorm';
+import { authDatabase } from './helpers/auth-database';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -5,34 +7,48 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { configureApp } from '../src/configure-app';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
-  let originalEnvironment: NodeJS.ProcessEnv;
+// La preparación utiliza consultas reales y puede incluir latencia de la base remota.
+jest.setTimeout(180000);
 
-  beforeEach(async () => {
-    originalEnvironment = { ...process.env };
-    process.env.JWT_SECRET = 'secreto-exclusivo-de-pruebas-con-32-bytes';
-    process.env.TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
-    delete process.env.ADMIN_EMAIL;
-    delete process.env.ADMIN_PASSWORD;
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+(process.env.AUTH_TEST_DATABASE_URL ? describe : describe.skip)(
+  'AppController (e2e)',
+  () => {
+    let app: INestApplication<App>;
+    let originalEnvironment: NodeJS.ProcessEnv;
+    let database: Awaited<ReturnType<typeof authDatabase>>;
 
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
-  });
+    beforeEach(async () => {
+      originalEnvironment = { ...process.env };
+      process.env.DATABASE_URL = process.env.AUTH_TEST_DATABASE_URL!;
+      database = await authDatabase(process.env.AUTH_TEST_DATABASE_URL!);
+      process.env.JWT_SECRET = 'secreto-exclusivo-de-pruebas-con-32-bytes';
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [AppModule],
+      })
+        .overrideProvider(DataSource)
+        .useValue(database.source)
+        .compile();
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
-  });
+      app = moduleFixture.createNestApplication();
+      configureApp(app);
+      await app.init();
+    });
 
-  afterEach(async () => {
-    await app.close();
-    process.env = originalEnvironment;
-  });
-});
+    it('/ (GET)', () => {
+      return request(app.getHttpServer())
+        .get('/')
+        .expect(200)
+        .expect('Hello World!');
+    });
+
+    afterEach(async () => {
+      if (database?.source.isInitialized)
+        await database.source.query(
+          `DROP SCHEMA ${database.source.driver.escape(database.schema)} CASCADE`,
+        );
+      await app?.close();
+      if (database?.source.isInitialized) await database.source.destroy();
+      process.env = originalEnvironment;
+    });
+  },
+);

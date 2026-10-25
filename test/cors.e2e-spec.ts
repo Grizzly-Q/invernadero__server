@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import { authConfig } from '../src/config/auth.config';
 import 'reflect-metadata';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -14,7 +16,17 @@ describe('CORS para React local', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        AppService,
+        {
+          provide: ConfigService,
+          useValue: new ConfigService({
+            auth: authConfig({
+              JWT_SECRET: 'secreto-de-prueba-con-mas-de-32-bytes',
+            }),
+          }),
+        },
+      ],
     }).compile();
     app = module.createNestApplication();
     configureApp(app);
@@ -26,7 +38,7 @@ describe('CORS para React local', () => {
     await app.close();
   });
 
-  it('permite el preflight de React con JWT y JSON sin habilitar cookies', async () => {
+  it('permite el preflight de React con JWT y JSON habilitando la cookie de renovación', async () => {
     const response = await request(server)
       .options('/telemetry/sensors/1/history')
       .set('Origin', 'http://localhost:5173')
@@ -39,9 +51,7 @@ describe('CORS para React local', () => {
     expect(response.headers['access-control-allow-headers']).toBe(
       'Authorization,Content-Type',
     );
-    expect(
-      response.headers['access-control-allow-credentials'],
-    ).toBeUndefined();
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
   });
 
   it('incluye el permiso de origen en la respuesta HTTP', async () => {

@@ -26,10 +26,12 @@ Devuelve la hora y el número de filas. Requiere una conexión válida, que exis
 
 ## Alcance actual
 
-Las entidades de invernaderos, controladores, credenciales, sesiones de usuario, sensores y mediciones tienen mapeo explícito a las tablas PostgreSQL. Las entidades se comparten con la CLI de migraciones. Las tablas restantes aún no están modeladas como entidades.
+Las entidades de invernaderos, controladores, credenciales, cuentas y sesiones de usuario, sensores y mediciones tienen mapeo explícito a las tablas PostgreSQL. Las entidades se comparten con la CLI de migraciones. Las tablas restantes aún no están modeladas como entidades.
 
 La [guía de migraciones](migrations/README.md) documenta el esquema inicial, los cambios, la conservación del historial, los comandos de ejecución y las limitaciones de reversión.
 
-La consulta usa `DataSource.query()`. El registro y el inicio de sesión todavía utilizan usuarios en memoria: no insertan ni consultan la tabla `Usuario`. Las sesiones se guardan en `SesionUsuario`; el JWT se cifra con AES-256-GCM usando `TOKEN_ENCRYPTION_KEY`, en lugar de guardarse en texto plano. La tabla se crea con la migración `1792771200005-CrearSesionUsuario`. El aprovisionamiento de ESP32 y la recepción de telemetría utilizan repositorios y transacciones persistentes. Consultar [controllers](../controllers/README.md) y [telemetría](../telemetry/README.md).
+La consulta de diagnóstico usa `DataSource.query()`. Registro y login utilizan ahora la tabla `Usuario`. `uuid_Usuario` identifica públicamente la cuenta y `correo_Usuario` permite autenticarla sin alterar las relaciones bigint existentes. `SesionUsuario` referencia el UUID con clave foránea y guarda solo el hash SHA-256 del refresh, su expiración y revocación. No guarda el JWT de acceso ni necesita cifrado reversible. La migración `1792771200008-PersistirCuentasYRefresh` transforma la tabla de sesiones previa y conserva las sesiones anteriores en SesionUsuarioLegado. Las cuentas históricas sin correo se conservan.
+
+Las migraciones se preparan en código y se ejecutan explícitamente; iniciar la API no modifica el esquema. Consultar el impacto y la reversión en la [guía de migraciones](migrations/README.md). La migración `1792771200009-RolesPorInvernadero` traslada los permisos a UsuarioInvernadero. El rol anterior se archiva únicamente para reversión y ya no autoriza operaciones. El aprovisionamiento ESP32 y la recepción de telemetría conservan sus relaciones existentes.
 
 [Configuración del entorno](../config/README.md) · [Usuarios](../users/README.md) · [Volver al README principal](../../README.md).

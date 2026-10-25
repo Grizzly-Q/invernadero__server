@@ -94,4 +94,56 @@ Las tablas nuevas de credenciales y del historial tienen RLS activado y carecen 
 
 El esquema admite hashes SHA-256 hexadecimales de claves aleatorias de alta entropía, revocación, vencimiento y varias credenciales por equipo para permitir rotación. No se generan claves durante estas migraciones.
 
-Los endpoints de aprovisionamiento, verificación de credenciales y recepción de telemetría se documentan en [controllers](../../controllers/README.md) y [telemetría](../../telemetry/README.md). La autenticación de usuarios y sus sesiones sigue en memoria.
+Los endpoints de aprovisionamiento, verificación de credenciales y recepción de telemetría se documentan en [controllers](../../controllers/README.md) y [telemetría](../../telemetry/README.md). Las cuentas y sesiones humanas se persisten en PostgreSQL.
+
+## Cuentas persistentes y renovación (migraciones 5 y 8)
+
+`1792771200005-CrearSesionUsuario` es la migración histórica de sesiones cifradas; no se modifica para respetar instalaciones donde ya se ejecutó. `1792771200008-PersistirCuentasYRefresh` realiza el nuevo ajuste:
+
+- Conserva las claves bigint de `Usuario` y todas las referencias de negocio.
+- Añade `uuid_Usuario` único y obligatorio, generado también para registros existentes.
+- Añade `correo_Usuario` único y normalizado, nullable para conservar usuarios históricos sin inventar correos.
+- Retira la unicidad del nombre visible, para permitir personas con el mismo nombre.
+- Conserva las sesiones cifradas anteriores en `SesionUsuarioLegado`, sin borrar sus filas; la API actual utiliza una nueva tabla `SesionUsuario`.
+- La nueva tabla guarda el hash SHA-256 del refresh y su fecha de revocación.
+- Enlaza `SesionUsuario.idUsuario_SesionUsuario` con `Usuario.uuid_Usuario` mediante una FK con `ON DELETE CASCADE` e índice por usuario. Conserva RLS y restricciones de acceso de la migración anterior.
+
+No crea invitaciones ni mueve roles a `UsuarioInvernadero`. Aplicar con `npm run migration:show` y `npm run migration:run` sobre la base elegida antes de arrancar la API actualizada. Esta preparación del código no ejecuta estos comandos por sí sola. Respaldar los datos antes de aplicarla.
+
+La reversión restaura la tabla histórica y retira correos y UUID añadidos. Se rechaza si existen sesiones nuevas de renovación para evitar perderlas; no reconstruye cuentas que solo existieron en memoria. Si ya existen nombres duplicados, se rechaza la reversión antes de borrar datos, porque el modelo anterior exigía nombres únicos.
+
+## Roles por invernadero (migración 9)
+
+`1792771200009-RolesPorInvernadero` añade `rol_UsuarioInvernadero` con valores ADMIN u OPERATOR a la relación existente. La clave primaria compuesta y las claves foráneas bigint se conservan. Todas las asignaciones históricas permanecen; solo las que ya pertenecían a una cuenta Administrador se traducen a ADMIN, en sus propios invernaderos. Las demás quedan como OPERATOR. No se concede pertenencia a otros invernaderos por haber sido administrador global.
+
+La columna Usuario.rol se renombra a `rolHistorico_Usuario`, admite NULL y se conserva solo para reversión: no se mapea ni se consulta para permisos. Las nuevas cuentas no reciben rol histórico. Al revertir, esas cuentas se convierten en Operador y los valores históricos se recuperan; los roles por invernadero se pierden al retirar la columna. Revertir no convierte administradores nuevos de invernadero en administradores globales.
+
+Los invernaderos antiguos sin ninguna pertenencia ADMIN necesitan identificar al propietario real. La migración no lo inventa ni escoge un usuario arbitrario. Antes de desplegar, revisar esos registros y asignar expresamente el rol ADMIN en UsuarioInvernadero al propietario confirmado. Los usuarios históricos sin correo también requieren completar su cuenta para iniciar sesión. Para detectarlos después de migrar:
+
+```sql
+SELECT g."idInvernadero_Invernadero", g."nombre_Invernadero"
+FROM public."Invernadero" g
+WHERE NOT EXISTS (
+  SELECT 1 FROM public."UsuarioInvernadero" m
+  WHERE m."idInvernadero_UsuarioInvernadero" = g."idInvernadero_Invernadero"
+    AND m."rol_UsuarioInvernadero" = 'ADMIN'
+);
+```
+
+Aplicar explícitamente las migraciones pendientes antes de arrancar el servidor actualizado. Preparar estos archivos no modifica la base ni despliega el servicio. Las invitaciones internas no forman parte de esta migración.
+
+## Compatibilidad con CuentaAcceso (migración 10)
+
+La instalación inspeccionada ya tenía `CrearCuentaAcceso1792771200006` en su historial. Ese registro externo se conserva sin reescribirlo. Los cambios nuevos utilizan las versiones 8, 9 y 10 para no colisionar con él. No revertir el historial más allá de los cambios de este proyecto sin disponer del código original de la migración externa.
+
+`1792771200010-ImportarCuentasHistoricas` importa UUID, nombre, correo normalizado y hash de las cuentas históricas a Usuario, si existe CuentaAcceso en el esquema configurado. No cambia contraseñas, no borra el origen y no concede pertenencias por un rol global anterior. Una colisión de correo interrumpe la transacción en vez de elegir arbitrariamente una identidad. La secuencia numérica se adelanta si es necesario para respetar IDs insertados explícitamente. Revertir el marcador conserva las identidades importadas para no borrar actividad posterior.
+
+Las pruebas de migración utilizan datos ficticios en un esquema aleatorio y verifican importación, conservación de la tabla de sesiones anterior, claves foráneas, roles, idempotencia y reversión. No exportan datos reales a archivos de pruebas.
+
+## Verificación de la instalación del 25 de octubre de 2026
+
+Se aplicaron las migraciones 8, 9 y 10 y se comprobó que no quedaron migraciones pendientes. Se conservaron los dos usuarios de demostración, sus dos asignaciones, la cuenta histórica de CuentaAcceso, las dos sesiones cifradas en SesionUsuarioLegado y las 18 mediciones existentes. Se importó la cuenta histórica y se crearon dos cuentas adicionales, una por invernadero sin acceso administrativo utilizable; no se cambiaron contraseñas existentes.
+
+Se verificaron por HTTP con la aplicación actualizada: login, perfil sin rol global, listado de invernaderos propios, miembros, filtrado de controladores, rechazo de acceso cruzado, renovación rotatoria mediante cookie y logout. Los secretos de las cuentas creadas se entregan en un archivo local excluido de Git; esta guía no incluye correos concretos ni contraseñas.
+
+Esta comprobación de base y aplicación local no equivale a desplegar el Worker de Cloudflare. La API remota debe ejecutar esta versión del servidor para utilizar el modelo nuevo.

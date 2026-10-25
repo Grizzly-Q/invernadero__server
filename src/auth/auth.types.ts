@@ -14,7 +14,7 @@ export interface AuthenticatedRequest extends Request {
   sessionId: string;
 }
 
-/** Respuesta con un único JWT compatible con DTOs Java; duración en segundos. */
+/** Respuesta pública con el JWT de acceso; el refresh web viaja solo como cookie. Duración en segundos. */
 export interface TokenResponse {
   accessToken: string;
   tokenType: 'Bearer';

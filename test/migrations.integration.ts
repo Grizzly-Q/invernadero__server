@@ -74,6 +74,20 @@ async function main(): Promise<void> {
       [sensorId],
     );
 
+    await runner.query(
+      `INSERT INTO ${schema}."Usuario" ("nombreUsuario", contrasena, rol) VALUES ('Administrador histórico', 'hash-ficticio', 'Administrador'), ('Operador histórico', 'hash-ficticio', 'Operador')`,
+    );
+    await runner.query(
+      `INSERT INTO ${schema}."UsuarioInvernadero" ("idUsuario_UsuarioInvernadero", "idInvernadero_UsuarioInvernadero") SELECT "idUsuario_Usuario", $1 FROM ${schema}."Usuario"`,
+      [greenhouseId],
+    );
+    // Reproduce la tabla externa encontrada en la instalación, solo con datos ficticios.
+    await runner.query(
+      `CREATE TABLE ${schema}."CuentaAcceso" ("idCuenta_CuentaAcceso" uuid PRIMARY KEY, "nombre_CuentaAcceso" varchar(80) NOT NULL, "correo_CuentaAcceso" varchar(254) NOT NULL UNIQUE, "hashContrasena_CuentaAcceso" varchar(255) NOT NULL)`,
+    );
+    await runner.query(
+      `INSERT INTO ${schema}."CuentaAcceso" VALUES ('00000000-0000-4000-8000-000000000099', 'Cuenta histórica ficticia', 'historica@example.com', 'hash-ficticio')`,
+    );
     const executor = new MigrationExecutor(source, runner);
     const executed = await executor.executePendingMigrations();
     assert.equal(executed.length, source.migrations.length);
@@ -81,6 +95,34 @@ async function main(): Promise<void> {
       (await executor.executePendingMigrations()).length,
       0,
       'La segunda ejecución no debe repetir migraciones.',
+    );
+    const imported = (await runner.query(
+      `SELECT "uuid_Usuario"::text AS id, contrasena AS hash FROM ${schema}."Usuario" WHERE "correo_Usuario" = 'historica@example.com'`,
+    )) as Array<{ id: string; hash: string }>;
+    assert.deepEqual(imported, [
+      { id: '00000000-0000-4000-8000-000000000099', hash: 'hash-ficticio' },
+    ]);
+    const legacy = (await runner.query(`SELECT to_regclass($1)::text AS name`, [
+      `${schema}."SesionUsuarioLegado"`,
+    ])) as Array<{ name: string | null }>;
+    assert.ok(
+      legacy[0].name,
+      'La tabla histórica debe conservarse al introducir refresh.',
+    );
+    const memberships = (await runner.query(
+      `SELECT "rol_UsuarioInvernadero" AS role FROM ${schema}."UsuarioInvernadero" ORDER BY "rol_UsuarioInvernadero"`,
+    )) as Array<{ role: string }>;
+    assert.deepEqual(
+      memberships.map((row) => row.role),
+      ['ADMIN', 'OPERATOR'],
+    );
+    await rejectsWithSavepoint(
+      runner,
+      () =>
+        runner.query(
+          `UPDATE ${schema}."UsuarioInvernadero" SET "rol_UsuarioInvernadero" = 'GLOBAL_ADMIN'`,
+        ),
+      /CK_UsuarioInvernadero_Rol/,
     );
     const measurement = await runner.manager
       .getRepository(MeasurementEntity)
@@ -175,6 +217,32 @@ async function main(): Promise<void> {
         ),
       /CK_CredencialControlador_Expiracion/,
     );
+    // Las sesiones deben referenciar cuentas reales y desaparecer al eliminar la cuenta.
+    const [account] = (await runner.query(
+      `INSERT INTO ${schema}."Usuario" ("nombreUsuario", contrasena, "correo_Usuario") VALUES ('Cuenta de prueba', 'hash-ficticio', 'prueba@example.com') RETURNING "uuid_Usuario" AS id`,
+    )) as Array<{ id: string }>;
+    await rejectsWithSavepoint(
+      runner,
+      () =>
+        runner.query(
+          `INSERT INTO ${schema}."SesionUsuario" ("idSesion_SesionUsuario", "idUsuario_SesionUsuario", "fechaExpiracion_SesionUsuario", "hashRefresh_SesionUsuario", "fechaRevocacion_SesionUsuario") VALUES ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', now() + interval '7 days', $1, NULL)`,
+          ['a'.repeat(64)],
+        ),
+      /FK_SesionUsuario_Usuario/,
+    );
+    await runner.query(
+      `INSERT INTO ${schema}."SesionUsuario" ("idSesion_SesionUsuario", "idUsuario_SesionUsuario", "hashRefresh_SesionUsuario", "fechaExpiracion_SesionUsuario") VALUES ('00000000-0000-4000-8000-000000000003', $1, $2, now() + interval '7 days')`,
+      [account.id, 'a'.repeat(64)],
+    );
+    await runner.query(
+      `DELETE FROM ${schema}."Usuario" WHERE "uuid_Usuario" = $1`,
+      [account.id],
+    );
+    const [remaining] = (await runner.query(
+      `SELECT count(*)::text AS total FROM ${schema}."SesionUsuario"`,
+    )) as Array<{ total: string }>;
+    assert.equal(remaining.total, '0');
+
     const security = (await runner.query(
       `SELECT relname AS tabla, relrowsecurity AS rls FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND relname IN ('CredencialControlador', 'typeorm_migrations')`,
       [schemaName],

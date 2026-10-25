@@ -1,10 +1,11 @@
+import { UserEntity } from '../users/entities/user.entity';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersController } from '../users/users.controller';
+import { GreenhousesModule } from '../greenhouses/greenhouses.module';
 import { UsersService } from '../users/users.service';
 import type { AuthConfig } from '../config/auth.config';
 import { AuthController } from './auth.controller';
@@ -20,7 +21,8 @@ import { UserSessionEntity } from './entities/user-session.entity';
 @Module({
   imports: [
     ControllersModule,
-    TypeOrmModule.forFeature([UserSessionEntity]),
+    GreenhousesModule,
+    TypeOrmModule.forFeature([UserSessionEntity, UserEntity]),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -38,7 +40,7 @@ import { UserSessionEntity } from './entities/user-session.entity';
       },
     }),
   ],
-  controllers: [AuthController, UsersController],
+  controllers: [AuthController],
   providers: [
     PasswordService,
     UsersService,

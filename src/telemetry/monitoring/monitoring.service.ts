@@ -262,7 +262,7 @@ export class MonitoringService {
     }
   }
 
-  /** Revalida JWT, rol actual y asignación; comprueba que la conexión sigue vigente tras consultar. */
+  /** Revalida JWT y pertenencia persistente; comprueba que la conexión sigue vigente tras consultar. */
   private async authorize(
     viewerId: string,
     sensorId: string,
@@ -274,7 +274,7 @@ export class MonitoringService {
     const sensor = await this.access.sensor(user, sensorId);
     // Una consulta PostgreSQL puede terminar después de logout o de un cambio de rol.
     const current = await this.auth.authenticate(viewer.token);
-    if (current.user.id !== user.id || current.user.role !== user.role)
+    if (current.user.id !== user.id)
       throw new UnauthorizedException('La identidad del usuario cambió.');
     if (this.viewers.get(viewerId) !== viewer)
       throw new UnauthorizedException('La conexión se cerró.');

@@ -13,9 +13,9 @@ npm run start:dev
 ```
 
 Antes de arrancar, completar `DATABASE_URL` y `JWT_SECRET` en `.env`. Consultar la [guía de configuración](src/config/README.md). Por defecto, la API escucha en `http://localhost:3000`.
-Antes de arrancar, completar `DATABASE_URL`, `JWT_SECRET` y `TOKEN_ENCRYPTION_KEY` en `.env`. Consultar la [guía de configuración](src/config/README.md). Por defecto, la API escucha en `http://localhost:3000`.
+Antes de arrancar, completar `DATABASE_URL` y `JWT_SECRET` en `.env`. Consultar la [guía de configuración](src/config/README.md). Por defecto, la API escucha en `http://localhost:3000`.
 
-El middleware CORS permite el proyecto React servido desde `http://localhost:5173`, incluidos los encabezados `Authorization` y `Content-Type`. El frontend debe enviar el JWT como Bearer; no se usan cookies ni `credentials: 'include'`. Este permiso de navegador no reemplaza la autenticación ni los permisos de cada endpoint. Otros orígenes, como `http://127.0.0.1:5173`, no están incluidos.
+El middleware CORS permite el proyecto React servido desde `http://localhost:5173`, incluidos los encabezados `Authorization` y `Content-Type`. El frontend debe enviar el JWT como Bearer; login, refresh y logout usan una cookie HttpOnly mediante `credentials: 'include'`. Este permiso de navegador no reemplaza la autenticación ni los permisos de cada endpoint. Otros orígenes, como `http://127.0.0.1:5173`, no están incluidos.
 
 ## Documentación por módulo
 
@@ -44,7 +44,7 @@ La prueba HTTP de ESP32 y la prueba de migraciones utilizan esquemas aislados co
 
 ## Alcance actual
 
-Los controladores ESP32, sus credenciales y las mediciones tienen persistencia PostgreSQL. Usuarios y sesiones humanos todavía se almacenan en memoria y se pierden al reiniciar. El proyecto sigue en desarrollo.
+Los controladores ESP32, sus credenciales y las mediciones tienen persistencia PostgreSQL. Usuarios y sesiones humanos se persisten en PostgreSQL; aplicar las migraciones antes de arrancar. Los roles se asignan por invernadero: crear uno registra al creador como ADMIN; consultar [invernaderos](src/greenhouses/README.md). El proyecto sigue en desarrollo.
 
 El modo en vivo usa WebSocket para el ESP32 y Socket.IO para los clientes de usuario, con concesiones temporales por sensor y permisos por invernadero. El firmware Arduino se mantiene en el proyecto independiente `esp32__client`; completar los drivers físicos y validar el sketch en Arduino IDE antes de conectarlo a hardware real.
 
