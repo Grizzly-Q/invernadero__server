@@ -49,3 +49,13 @@ ADMIN registra, activa o bloquea equipos, administra credenciales y registra sen
 La pertenencia se consulta en PostgreSQL en cada operación; no hay vínculos humanos temporales. El monitoreo revalida permisos durante la conexión. La migración `1792771200009-RolesPorInvernadero` debe aplicarse antes de arrancar esta versión. Conserva asignaciones históricas y traduce sus roles anteriores; no inventa propietarios para invernaderos sin administrador. Esos registros requieren identificar al dueño real y asignarlo expresamente en la base antes de administrarlos. Las nuevas creaciones siempre reciben un administrador.
 
 Las pruebas unitarias comprueban creación transaccional, acceso cruzado y consulta de pertenencias sin caché. Las pruebas HTTP completas de `test/greenhouses.e2e-spec.ts` requieren `AUTH_TEST_DATABASE_URL` y utilizan un esquema desechable.
+
+## Inventario para consultar historial
+
+GET /greenhouses/:id/sensors requiere una sesión humana y pertenencia ADMIN u OPERATOR al invernadero solicitado. Se autoriza antes de consultar equipos; una cuenta ajena recibe 403, un identificador inválido 400 y un recurso que dejó de existir 404. La respuesta incluye Cache-Control: no-store.
+
+Devuelve greenhouseId, controllerId y un arreglo items. controllerId es null si no hay equipo; con un equipo sin sensores se conserva su id y items queda vacío. Cada sensor contiene exclusivamente id, controllerId, type, unit y connectionStatus, ordenados por id ascendente. No se exponen credenciales, hashes ni relaciones. Los IDs bigint siguen siendo cadenas. El límite actual del esquema es un equipo por invernadero y un sensor por tipo/equipo.
+
+Esta es una consulta de lectura, independiente de los permisos administrativos de /controllers. Permite seleccionar sensores y consultar su historial aunque el invernadero esté desactivado o su ESP32 bloqueado. No modifica estados, lecturas, credenciales ni el esquema. Las lecturas se solicitan después al endpoint existente GET /telemetry/sensors/:sensorId/history, que verifica nuevamente la pertenencia.
+
+Las pruebas unitarias y HTTP simulan la persistencia y cubren ADMIN, OPERATOR, cuentas ajenas, revocación de pertenencia, metadatos permitidos, ausencia de equipo y ausencia de sensores. No comprueban PostgreSQL real ni generan mediciones.

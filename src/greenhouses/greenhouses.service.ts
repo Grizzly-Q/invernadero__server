@@ -154,6 +154,47 @@ export class GreenhousesService {
     });
   }
 
+  /**
+   * Consulta el inventario público para seleccionar un sensor del historial, incluso con el equipo bloqueado.
+   * @param userId Cuenta autenticada con pertenencia ADMIN u OPERATOR.
+   * @param id Identificador del invernadero autorizado.
+   * @returns Invernadero, controlador opcional e identificadores, tipos, unidades y estados de sus sensores; nunca claves.
+   * @throws ForbiddenException si no hay pertenencia; NotFoundException si el recurso dejó de existir.
+   */
+  async sensors(userId: string, id: string) {
+    await this.access.require(userId, id);
+    const greenhouse = await this.source
+      .getRepository(GreenhouseEntity)
+      .findOneBy({ id });
+    if (!greenhouse) throw new NotFoundException('Invernadero no encontrado.');
+    const controller = await this.source
+      .getRepository(ControllerEntity)
+      .findOneBy({ greenhouseId: id });
+    if (!controller) return { greenhouseId: id, controllerId: null, items: [] };
+    const sensors = await this.source.getRepository(SensorEntity).find({
+      where: { controllerId: controller.id },
+      select: {
+        id: true,
+        controllerId: true,
+        type: true,
+        unit: true,
+        connectionStatus: true,
+      },
+      order: { id: 'ASC' },
+    });
+    return {
+      greenhouseId: id,
+      controllerId: controller.id,
+      items: sensors.map((sensor) => ({
+        id: sensor.id,
+        controllerId: sensor.controllerId,
+        type: sensor.type,
+        unit: sensor.unit,
+        connectionStatus: sensor.connectionStatus,
+      })),
+    };
+  }
+
   /** Lista hasta 100 miembros por página; solo el administrador de ese invernadero accede a los correos. */
   async members(userId: string, id: string, beforeId?: string) {
     await this.access.require(userId, id, [Role.ADMIN]);

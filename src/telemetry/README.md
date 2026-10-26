@@ -100,3 +100,9 @@ Errores: 400 para filtros inválidos, 401 sin JWT válido, 403 sin acceso al inv
 El [modo en vivo](monitoring/README.md) utiliza un canal separado con concesiones temporales. Sus lecturas rápidas se comparten con espectadores autorizados sin insertar cada muestra en el historial; el POST periódico de esta guía sigue disponible.
 
 [Aprovisionamiento](../controllers/README.md) · [Migraciones](../db/migrations/README.md).
+
+## Selección de sensores desde la aplicación
+
+GET /greenhouses/:id/sensors permite a ADMIN y OPERATOR obtener el inventario público de su propio invernadero antes de solicitar el historial. Distingue ausencia de controlador de ausencia de sensores y no entrega claves. Las rutas administrativas de controladores conservan sus permisos actuales.
+
+El cliente React utiliza from/to fijos para Hoy y los últimos siete días calendario de Perú, presenta las unidades registradas y recorre páginas explícitas. Los resúmenes abarcan todo el período; una gráfica paginada contiene únicamente los elementos de su página. Los grupos horarios son promedios, no muestras individuales, y las horas sin datos no se completan con ceros. Cada respuesta del historial conserva su consistencia interna mediante REPEATABLE READ; no hay una instantánea compartida entre páginas de solicitudes independientes y las llegadas tardías pueden alterar el historial.

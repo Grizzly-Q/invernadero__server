@@ -70,6 +70,16 @@ export class GreenhousesController {
     return this.greenhouses.get(user.id, id);
   }
 
+  /** Consulta sensores propios como ADMIN u OPERATOR; solo entrega metadatos públicos y distingue la ausencia de equipo. */
+  @Get(':id/sensors')
+  @Header('Cache-Control', 'no-store')
+  sensors(
+    @CurrentUser() user: PublicUser,
+    @Param('id', DatabaseIdPipe) id: string,
+  ) {
+    return this.greenhouses.sensors(user.id, id);
+  }
+
   /** Consulta miembros del invernadero como administrador; no crea invitaciones ni modifica roles. */
   @Get(':id/members')
   @Header('Cache-Control', 'no-store')
