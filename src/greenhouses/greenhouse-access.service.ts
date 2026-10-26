@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, type EntityManager } from 'typeorm';
 import { Role } from '../users/role.enum';
 
 /** Comprueba la pertenencia persistente; nunca acepta un rol indicado por el cliente o el JWT. */
@@ -19,6 +19,7 @@ export class GreenhouseAccessService {
    * @param userId UUID de la cuenta autenticada.
    * @param greenhouseId Identificador bigint del invernadero, como cadena.
    * @param roles Roles permitidos para la operación.
+   * @param manager Transacción opcional; bloquea la pertenencia mientras se realiza la escritura autorizada.
    * @returns Rol persistido y verificado.
    * @throws ForbiddenException si no hay pertenencia o el rol no autoriza la operación.
    */
@@ -26,12 +27,13 @@ export class GreenhouseAccessService {
     userId: string,
     greenhouseId: string,
     roles: Role[] = [Role.ADMIN, Role.OPERATOR],
+    manager?: EntityManager,
   ): Promise<Role> {
-    const rows = await this.source.query<Array<{ role: Role }>>(
+    const rows = await (manager ?? this.source).query<Array<{ role: Role }>>(
       `SELECT m."rol_UsuarioInvernadero" AS role
       FROM ${this.schema()}."UsuarioInvernadero" m
       JOIN ${this.schema()}."Usuario" u ON u."idUsuario_Usuario" = m."idUsuario_UsuarioInvernadero"
-      WHERE u."uuid_Usuario" = $1 AND m."idInvernadero_UsuarioInvernadero" = $2`,
+      WHERE u."uuid_Usuario" = $1 AND m."idInvernadero_UsuarioInvernadero" = $2${manager ? ' FOR SHARE OF m' : ''}`,
       [userId, greenhouseId],
     );
     if (!rows[0] || !roles.includes(rows[0].role))

@@ -78,7 +78,7 @@ export class ControllersController {
    * @returns HTTP 201 con id, greenhouseId, name, active=false, connectionStatus=Desconectado,
    * createdAt y lastSeenAt=null; el identificador lo genera PostgreSQL.
    * @throws NotFoundException (404) si el invernadero no existe.
-   * @throws ConflictException (409) si el invernadero ya tiene un controlador ESP32.
+   * @throws ConflictException (409) si el invernadero está desactivado o ya tiene un controlador ESP32.
    */
   @Post()
   @Header('Cache-Control', 'no-store')
@@ -108,7 +108,7 @@ export class ControllersController {
    * @param dto Cuerpo { active: boolean }; no permite cambiar el nombre o el invernadero.
    * @returns HTTP 200 con el perfil público actualizado del controlador ESP32.
    * @throws NotFoundException (404) si el controlador no existe.
-   * @throws BadRequestException (400) si se intenta activar sin al menos una credencial vigente.
+   * @throws BadRequestException (400) si se intenta activar sin credencial vigente o con el invernadero desactivado.
    */
   @Patch(':id')
   @Header('Cache-Control', 'no-store')

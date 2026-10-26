@@ -15,6 +15,8 @@ import { ControllersController } from '../src/controllers/controllers.controller
 import { ControllersService } from '../src/controllers/controllers.service';
 import { ControllerCredentialsService } from '../src/controllers/controller-credentials.service';
 import { ControllerEntity } from '../src/controllers/entities/controller.entity';
+import { GreenhouseEntity } from '../src/db/entities/greenhouse.entity';
+import { SensorEntity } from '../src/telemetry/entities/sensor.entity';
 import { GreenhousesModule } from '../src/greenhouses/greenhouses.module';
 import { Role } from '../src/users/role.enum';
 
@@ -30,9 +32,20 @@ describe('Invernaderos HTTP y aislamiento', () => {
     location: string;
     length: string;
     width: string;
+    height: string | null;
+    description: string | null;
+    status: 'Activo' | 'EnMantenimiento' | 'Desactivado';
+    operationMode: 'Manual' | 'Automatico';
   };
   let houses = new Map<string, House>();
   let memberships = new Map<string, Role>();
+  let equipment: {
+    id: string;
+    greenhouseId: string;
+    active: boolean;
+    connectionStatus: string;
+  } | null = null;
+  const updates = jest.fn();
   const controllers = { create: jest.fn(), list: jest.fn() };
   const credentials = { issue: jest.fn() };
   const source = {
@@ -64,24 +77,61 @@ describe('Invernaderos HTTP y aislamiento', () => {
     transaction: async (work: (manager: unknown) => Promise<unknown>) => {
       const pendingHouses = new Map(houses);
       const pendingMemberships = new Map(memberships);
+      let pendingEquipment = equipment ? { ...equipment } : null;
       const result = await work({
+        findOne: (
+          entity: unknown,
+          { where }: { where: { id?: string; greenhouseId?: string } },
+        ) =>
+          Promise.resolve(
+            entity === GreenhouseEntity
+              ? where.id && pendingHouses.has(where.id)
+                ? { ...pendingHouses.get(where.id)! }
+                : null
+              : pendingEquipment &&
+                  pendingEquipment.greenhouseId === where.greenhouseId
+                ? { ...pendingEquipment }
+                : null,
+          ),
         findOneBy: (_entity: unknown, { id }: { id: string }) =>
           Promise.resolve({ id, databaseId: id }),
         create: (_entity: unknown, row: unknown) => row,
-        save: (_entity: unknown, row: Omit<House, 'id'>) => {
-          const house = { ...row, id: String(++sequence) };
+        save: (_entity: unknown, row: Partial<House>) => {
+          const house = {
+            height: null,
+            description: null,
+            status: 'Activo',
+            operationMode: 'Manual',
+            ...row,
+            id: row.id ?? String(++sequence),
+          } as House;
           pendingHouses.set(house.id, house);
           return Promise.resolve(house);
         },
-        query: (_sql: string, params: string[]) => {
+        query: (sql: string, params: string[]) => {
+          if (sql.includes('SELECT m.')) {
+            const role = pendingMemberships.get(`${params[0]}:${params[1]}`);
+            return Promise.resolve(role ? [{ role }] : []);
+          }
           if (failMembership)
             return Promise.reject(new Error('Fallo simulado de pertenencia'));
           pendingMemberships.set(`${params[0]}:${params[1]}`, Role.ADMIN);
           return Promise.resolve([]);
         },
+        update: (
+          entity: unknown,
+          criteria: unknown,
+          values: Record<string, unknown>,
+        ) => {
+          updates(entity, criteria, values);
+          if (entity === ControllerEntity && pendingEquipment?.id === criteria)
+            pendingEquipment = { ...pendingEquipment, ...values };
+          return Promise.resolve({ affected: 1 });
+        },
       });
       houses = pendingHouses;
       memberships = pendingMemberships;
+      equipment = pendingEquipment;
       return result;
     },
   };
@@ -135,6 +185,7 @@ describe('Invernaderos HTTP y aislamiento', () => {
     houses.clear();
     memberships.clear();
     failMembership = false;
+    equipment = null;
     jest.clearAllMocks();
   });
   afterAll(async () => {
@@ -223,5 +274,149 @@ describe('Invernaderos HTTP y aislamiento', () => {
     } finally {
       log.mockRestore();
     }
+  });
+
+  it('edita el mismo registro por HTTP y permite borrar opcionales sin cambiar estado', async () => {
+    await create('ana').expect(201);
+    const response = await request(server)
+      .patch('/greenhouses/1')
+      .set('Authorization', 'Bearer ana')
+      .send({
+        name: ' Norte ',
+        location: ' Sector A ',
+        length: 12.25,
+        height: null,
+        description: null,
+      })
+      .expect(200);
+    expect(response.body as unknown).toMatchObject({
+      id: '1',
+      name: 'Norte',
+      location: 'Sector A',
+      length: '12.25',
+      width: '5',
+      height: null,
+      description: null,
+      status: 'Activo',
+      role: 'ADMIN',
+    });
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(houses.size).toBe(1);
+  });
+
+  it('deniega edición y desactivación a no miembros y operadores, incluso después de revocar un permiso', async () => {
+    await create('ana').expect(201);
+    memberships.set('operador:1', Role.OPERATOR);
+    for (const user of ['ajeno', 'operador']) {
+      await request(server)
+        .patch('/greenhouses/1')
+        .set('Authorization', `Bearer ${user}`)
+        .send({ name: 'Ajeno' })
+        .expect(403);
+      await request(server)
+        .patch('/greenhouses/1/status')
+        .set('Authorization', `Bearer ${user}`)
+        .send({ status: 'Desactivado' })
+        .expect(403);
+    }
+    memberships.set('ana:1', Role.OPERATOR);
+    await request(server)
+      .patch('/greenhouses/1')
+      .set('Authorization', 'Bearer ana')
+      .send({ name: 'Sin permiso vigente' })
+      .expect(403);
+    expect(houses.get('1')?.name).toBe('Cultivo');
+    expect(updates).not.toHaveBeenCalled();
+  });
+
+  it('desactiva y reactiva sin borrar registros ni habilitar automáticamente el equipo', async () => {
+    await create('ana').expect(201);
+    equipment = {
+      id: '7',
+      greenhouseId: '1',
+      active: true,
+      connectionStatus: 'Conectado',
+    };
+    await request(server)
+      .patch('/greenhouses/1/status')
+      .set('Authorization', 'Bearer ana')
+      .send({ status: 'Desactivado' })
+      .expect(200);
+    expect(equipment).toMatchObject({
+      active: false,
+      connectionStatus: 'Desconectado',
+    });
+    expect(updates).toHaveBeenCalledWith(
+      SensorEntity,
+      { controllerId: '7' },
+      { connectionStatus: 'Desconectado' },
+    );
+    const inactiveEdit = await request(server)
+      .patch('/greenhouses/1')
+      .set('Authorization', 'Bearer ana')
+      .send({ description: 'Sigue desactivado' })
+      .expect(200);
+    expect((inactiveEdit.body as House).status).toBe('Desactivado');
+    const list = await request(server)
+      .get('/greenhouses')
+      .set('Authorization', 'Bearer ana')
+      .expect(200);
+    expect((list.body as { items: House[] }).items).toHaveLength(1);
+    expect((list.body as { items: House[] }).items[0].status).toBe(
+      'Desactivado',
+    );
+    await request(server)
+      .patch('/greenhouses/1/status')
+      .set('Authorization', 'Bearer ana')
+      .send({ status: 'Activo' })
+      .expect(200);
+    expect(equipment).toMatchObject({ active: false });
+    expect(houses.size).toBe(1);
+  });
+
+  it('rechaza campos protegidos y datos inválidos con los pipes reales', async () => {
+    await create('ana').expect(201);
+    for (const body of [
+      { status: 'Desactivado' },
+      { role: 'ADMIN' },
+      { ownerId: 'otro' },
+      { name: null },
+      { length: 0 },
+      { width: 1.234 },
+    ]) {
+      await request(server)
+        .patch('/greenhouses/1')
+        .set('Authorization', 'Bearer ana')
+        .send(body)
+        .expect(400);
+    }
+    for (const body of [
+      {},
+      { status: 'Eliminado' },
+      { status: 'Desactivado', active: true },
+    ]) {
+      await request(server)
+        .patch('/greenhouses/1/status')
+        .set('Authorization', 'Bearer ana')
+        .send(body)
+        .expect(400);
+    }
+    await request(server)
+      .patch('/greenhouses/0')
+      .set('Authorization', 'Bearer ana')
+      .send({ name: 'No válido' })
+      .expect(400);
+    expect(houses.get('1')?.status).toBe('Activo');
+  });
+
+  it('exige sesión en las dos rutas de escritura', async () => {
+    await request(server)
+      .patch('/greenhouses/1')
+      .send({ name: 'Sin sesión' })
+      .expect(401);
+    await request(server)
+      .patch('/greenhouses/1/status')
+      .send({ status: 'Desactivado' })
+      .expect(401);
   });
 });
