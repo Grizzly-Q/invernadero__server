@@ -70,7 +70,7 @@ def clasificar_archivos(directorio):
 
 ---
 
-## 5. Registro de Hábitos Diarios
+## 5. Registro de Hábitos Diarios:
 
 Utiliza esta lista de verificación interactiva para medir tu progreso diario:
 
@@ -84,7 +84,7 @@ Utiliza esta lista de verificación interactiva para medir tu progreso diario:
 
 ---
 
-## 6. Recursos y Enlaces Útiles
+## 6. Recursos y Enlaces Útiles:
 
 Aquí puedes guardar los enlaces que consultas con mayor frecuencia en tu día a día:
 
