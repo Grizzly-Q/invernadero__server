@@ -81,7 +81,7 @@ export class MonitoringService {
     this.devices.delete(controllerId);
   }
 
-  /** Añade una conexión de Android después de validar su sesión humana. */
+  /** Añade una conexión de React o Android después de validar su sesión humana. */
   async addViewer(
     id: string,
     token: string,
@@ -96,7 +96,7 @@ export class MonitoringService {
     this.viewers.set(id, { token, emit, close });
   }
 
-  /** Libera todas las concesiones de la conexión de Android que se cerró. */
+  /** Libera todas las concesiones de la aplicación cuya conexión se cerró. */
   removeViewer(id: string): void {
     this.sessions.removeViewer(id);
     this.viewers.delete(id);
@@ -127,7 +127,7 @@ export class MonitoringService {
     );
   }
 
-  /** Renueva únicamente una concesión aún vigente; Android debe llamarlo cada 20 segundos. */
+  /** Renueva únicamente una concesión aún vigente; El cliente debe llamarlo cada 20 segundos. */
   async renew(viewerId: string, payload: unknown) {
     const dto = validateMessage(SensorSubscriptionDto, payload);
     await this.authorize(viewerId, dto.sensorId);
