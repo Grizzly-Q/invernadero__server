@@ -1,6 +1,9 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import type { OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import type { AuthConfig } from '../../config/auth.config';
+import { origenMonitoreoPermitido } from './origen-monitoreo';
 import type { IncomingMessage, Server as HttpServer } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { Server as SocketServer } from 'socket.io';
@@ -31,7 +34,7 @@ class WindowQuota {
   }
 }
 
-/** Dos protocolos en el mismo servidor: WebSocket para ESP32 y Socket.IO para Android. */
+/** Dos protocolos en el mismo servidor: WebSocket para ESP32 y Socket.IO para React y Android. */
 @Injectable()
 export class MonitoringTransport
   implements OnApplicationBootstrap, OnModuleDestroy
@@ -59,9 +62,10 @@ export class MonitoringTransport
     private readonly adapter: HttpAdapterHost,
     private readonly monitoring: MonitoringService,
     private readonly credentials: ControllerCredentialsService,
+    private readonly config: ConfigService,
   ) {}
 
-  /** Adjunta transportes al servidor de Nest después de inicializar las rutas HTTP. */
+  /** Adjunta transportes y reutiliza WEB_ORIGINS para handshakes web; los clientes nativos siguen autenticándose sin Origin. */
   onApplicationBootstrap(): void {
     this.http = this.adapter.httpAdapter.getHttpServer() as HttpServer;
     this.boards = new WebSocketServer({
@@ -78,11 +82,15 @@ export class MonitoringTransport
       allowRequest: (request, next) =>
         next(
           null,
-          this.handshakeQuota.allow(
-            request.socket.remoteAddress ?? 'unknown',
-            60,
-            60000,
-          ),
+          origenMonitoreoPermitido(
+            request.headers.origin,
+            this.config.getOrThrow<AuthConfig>('auth').webOrigins,
+          ) &&
+            this.handshakeQuota.allow(
+              request.socket.remoteAddress ?? 'unknown',
+              60,
+              60000,
+            ),
         ),
     });
     this.io

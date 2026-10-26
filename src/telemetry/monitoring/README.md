@@ -145,3 +145,11 @@ Remove-Item Env:MONITORING_TEST_DATABASE_URL
 La prueba crea un esquema aleatorio y utiliza clientes WebSocket y Socket.IO reales. Verifica permisos, flujo compartido, confirmaciones, rotación, bloqueo, logout y que no se insertan lecturas rápidas en el historial; elimina el esquema al finalizar. Las pruebas unitarias usan un reloj controlado para comprobar vencimientos sin esperar un minuto real.
 
 Fuentes de los protocolos: [cliente WebSocket de Espressif](https://docs.espressif.com/projects/esp-protocols/esp_websocket_client/docs/latest/index.html), [middleware Socket.IO](https://socket.io/docs/v4/middlewares), [cliente Java](https://socketio.github.io/socket.io-client-java/initialization.html) y [clase Container](https://developers.cloudflare.com/containers/api/container-class/).
+
+## Cliente React y origen del navegador
+
+React usa el mismo namespace Socket.IO /monitoring y el path /socket.io, con JWT de la sesión humana en auth.token. La lista WEB_ORIGINS existente se reutiliza en allowRequest para validar Origin en el handshake de Socket.IO. No se cambia CORS de HTTP ni su configuración. Origin ausente mantiene clientes nativos; Origin presente debe coincidir exactamente con uno de los permitidos. El permiso de origen no sustituye JWT, concesiones o pertenencias por sensor. La ruta WebSocket del ESP32 conserva su autenticación y transporte propios.
+
+El frontend obtiene sensores mediante GET /greenhouses/:id/sensors como ADMIN u OPERATOR, inicia por acción explícita y renueva cada 20 segundos. Al desconectarse, ocultarse la página, cerrar sesión o rotar su acceso, cierra la conexión y solicita un nuevo inicio explícito. No se almacenan tokens en URLs ni en el estado público de React. La salida de una persona no finaliza el flujo de otros espectadores; stop y las concesiones mantienen su semántica existente.
+
+Las pruebas de monitoring-web.e2e-spec.ts abren WebSockets Socket.IO reales con identidad simulada para verificar orígenes permitidos y ajenos, clientes nativos y la exigencia independiente de autenticación. Las pruebas de origen no requieren PostgreSQL y no verifican la lectura física de sensores.
