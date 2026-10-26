@@ -46,6 +46,14 @@ describe('Invernaderos HTTP y aislamiento', () => {
     connectionStatus: string;
   } | null = null;
   const updates = jest.fn();
+  let inventory: Array<{
+    id: string;
+    controllerId: string;
+    type: 'NivelAgua';
+    unit: string;
+    connectionStatus: 'Desconectado';
+    credential?: string;
+  }> = [];
   const controllers = { create: jest.fn(), list: jest.fn() };
   const credentials = { issue: jest.fn() };
   const source = {
@@ -67,11 +75,31 @@ describe('Invernaderos HTTP y aislamiento', () => {
       );
     }),
     getRepository: (entity: unknown) => ({
-      findOneBy: ({ id }: { id: string }) =>
+      findOneBy: ({
+        id,
+        greenhouseId,
+      }: {
+        id?: string;
+        greenhouseId?: string;
+      }) =>
         Promise.resolve(
           entity === ControllerEntity
-            ? { id, greenhouseId: '1' }
-            : (houses.get(id) ?? null),
+            ? greenhouseId
+              ? equipment?.greenhouseId === greenhouseId
+                ? { ...equipment }
+                : null
+              : { id, greenhouseId: '1' }
+            : id
+              ? (houses.get(id) ?? null)
+              : null,
+        ),
+      find: ({ where }: { where: { controllerId: string } }) =>
+        Promise.resolve(
+          entity === SensorEntity
+            ? inventory.filter(
+                (sensor) => sensor.controllerId === where.controllerId,
+              )
+            : [],
         ),
     }),
     transaction: async (work: (manager: unknown) => Promise<unknown>) => {
@@ -186,6 +214,7 @@ describe('Invernaderos HTTP y aislamiento', () => {
     memberships.clear();
     failMembership = false;
     equipment = null;
+    inventory = [];
     jest.clearAllMocks();
   });
   afterAll(async () => {
@@ -418,5 +447,89 @@ describe('Invernaderos HTTP y aislamiento', () => {
       .patch('/greenhouses/1/status')
       .send({ status: 'Desactivado' })
       .expect(401);
+  });
+
+  it('ofrece inventario de solo lectura a ADMIN y OPERATOR sin exponer secretos ni requerir equipo activo', async () => {
+    await create('ana').expect(201);
+    memberships.set('operador:1', Role.OPERATOR);
+    houses.get('1')!.status = 'Desactivado';
+    equipment = {
+      id: '7',
+      greenhouseId: '1',
+      active: false,
+      connectionStatus: 'Desconectado',
+    };
+    inventory = [
+      {
+        id: '9007199254740993',
+        controllerId: '7',
+        type: 'NivelAgua',
+        unit: 'cm',
+        connectionStatus: 'Desconectado',
+        credential: 'no-exponer',
+      },
+    ];
+    for (const token of ['ana', 'operador']) {
+      const response = await request(server)
+        .get('/greenhouses/1/sensors')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(response.body as unknown).toEqual({
+        greenhouseId: '1',
+        controllerId: '7',
+        items: [
+          {
+            id: '9007199254740993',
+            controllerId: '7',
+            type: 'NivelAgua',
+            unit: 'cm',
+            connectionStatus: 'Desconectado',
+          },
+        ],
+      });
+    }
+    await request(server)
+      .get('/greenhouses/1/sensors')
+      .set('Authorization', 'Bearer ajeno')
+      .expect(403);
+    await request(server).get('/greenhouses/1/sensors').expect(401);
+    await request(server)
+      .get('/greenhouses/0/sensors')
+      .set('Authorization', 'Bearer ana')
+      .expect(400);
+    memberships.delete('operador:1');
+    await request(server)
+      .get('/greenhouses/1/sensors')
+      .set('Authorization', 'Bearer operador')
+      .expect(403);
+  });
+
+  it('distingue por HTTP ausencia de controlador y ausencia de sensores', async () => {
+    await create('ana').expect(201);
+    const empty = await request(server)
+      .get('/greenhouses/1/sensors')
+      .set('Authorization', 'Bearer ana')
+      .expect(200);
+    expect(empty.body as unknown).toEqual({
+      greenhouseId: '1',
+      controllerId: null,
+      items: [],
+    });
+    equipment = {
+      id: '7',
+      greenhouseId: '1',
+      active: false,
+      connectionStatus: 'Desconectado',
+    };
+    const withoutSensors = await request(server)
+      .get('/greenhouses/1/sensors')
+      .set('Authorization', 'Bearer ana')
+      .expect(200);
+    expect(withoutSensors.body as unknown).toEqual({
+      greenhouseId: '1',
+      controllerId: '7',
+      items: [],
+    });
   });
 });
