@@ -1,12 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { GreenhouseEntity } from '../db/entities/greenhouse.entity';
+import { ControllerEntity } from '../controllers/entities/controller.entity';
+import { SensorEntity } from '../telemetry/entities/sensor.entity';
 import { UserEntity } from '../users/entities/user.entity';
 import { Role } from '../users/role.enum';
 import { GreenhouseAccessService } from './greenhouse-access.service';
-import { CreateGreenhouseDto } from './greenhouse.dto';
+import {
+  CreateGreenhouseDto,
+  UpdateGreenhouseDto,
+  GreenhouseStatusDto,
+} from './greenhouse.dto';
 
-/** Crea invernaderos con su administrador y consulta únicamente pertenencias del usuario. */
+/** Administra datos y estado de invernaderos con autorización persistente por pertenencia. */
 @Injectable()
 export class GreenhousesService {
   constructor(
@@ -73,6 +79,79 @@ export class GreenhousesService {
       .findOneBy({ id });
     if (!greenhouse) throw new NotFoundException('Invernadero no encontrado.');
     return { ...greenhouse, role };
+  }
+
+  /**
+   * Actualiza únicamente los campos recibidos; el estado y el equipo no forman parte de esta operación.
+   * @param userId Cuenta autenticada que debe conservar una pertenencia ADMIN.
+   * @param id Identificador del invernadero.
+   * @param dto Cambios validados; null elimina alto o descripción y omitir conserva el valor.
+   * @returns Perfil actualizado con rol ADMIN.
+   * @throws ForbiddenException sin permiso; NotFoundException si no existe. Un fallo revierte todos los cambios.
+   */
+  async update(userId: string, id: string, dto: UpdateGreenhouseDto) {
+    return this.source.transaction(async (manager) => {
+      const role = await this.access.require(userId, id, [Role.ADMIN], manager);
+      const greenhouse = await manager.findOne(GreenhouseEntity, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!greenhouse)
+        throw new NotFoundException('Invernadero no encontrado.');
+      if (dto.name !== undefined) greenhouse.name = dto.name;
+      if (dto.location !== undefined) greenhouse.location = dto.location;
+      if (dto.length !== undefined) greenhouse.length = String(dto.length);
+      if (dto.width !== undefined) greenhouse.width = String(dto.width);
+      if (dto.height !== undefined)
+        greenhouse.height = dto.height === null ? null : String(dto.height);
+      if (dto.description !== undefined)
+        greenhouse.description = dto.description;
+      return { ...(await manager.save(GreenhouseEntity, greenhouse)), role };
+    });
+  }
+
+  /**
+   * Cambia el estado sin borrar datos; desactivar bloquea el ESP32 y desconecta sus sensores atómicamente.
+   * El orden de bloqueo invernadero → controlador coincide con el registro y la activación de equipos.
+   * @param userId Cuenta autenticada con pertenencia ADMIN.
+   * @param id Identificador del invernadero.
+   * @param status Estado validado; reactivar no habilita el ESP32 ni revoca credenciales.
+   * @returns Perfil actualizado con el estado persistido.
+   * @throws ForbiddenException sin permiso; NotFoundException si no existe. No hay escrituras parciales.
+   */
+  async setStatus(
+    userId: string,
+    id: string,
+    status: GreenhouseStatusDto['status'],
+  ) {
+    return this.source.transaction(async (manager) => {
+      const role = await this.access.require(userId, id, [Role.ADMIN], manager);
+      const greenhouse = await manager.findOne(GreenhouseEntity, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!greenhouse)
+        throw new NotFoundException('Invernadero no encontrado.');
+      if (status === 'Desactivado') {
+        const controller = await manager.findOne(ControllerEntity, {
+          where: { greenhouseId: id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (controller) {
+          await manager.update(ControllerEntity, controller.id, {
+            active: false,
+            connectionStatus: 'Desconectado',
+          });
+          await manager.update(
+            SensorEntity,
+            { controllerId: controller.id },
+            { connectionStatus: 'Desconectado' },
+          );
+        }
+      }
+      greenhouse.status = status;
+      return { ...(await manager.save(GreenhouseEntity, greenhouse)), role };
+    });
   }
 
   /** Lista hasta 100 miembros por página; solo el administrador de ese invernadero accede a los correos. */

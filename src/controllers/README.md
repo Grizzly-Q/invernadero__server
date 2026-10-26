@@ -69,6 +69,8 @@ Respuesta ilustrativa; el marcador no es una clave válida:
 
 Bloquear con `active: false` impide usar todas las claves sin revocarlas. Reactivarlo permite usar las que sigan vigentes. Vencimiento y revocación invalidan claves incluso de controladores ESP32 activos.
 
+Desactivar el invernadero mediante `PATCH /greenhouses/:id/status` bloquea su ESP32 y marca sus sensores Desconectado en la misma transacción, sin revocar claves ni borrar historial. Mientras el invernadero siga Desactivado no se permite registrar un controlador (409) ni habilitarlo (400). Reactivar el invernadero no habilita automáticamente sus comunicaciones: se requiere la acción administrativa explícita del equipo. El orden de bloqueo invernadero antes que controlador se comparte entre esas operaciones para evitar carreras.
+
 Para reemplazo inmediato, usar `/credentials/rotate`. Para transición coordinada, emitir una clave adicional, instalarla en el ESP32 y revocar individualmente las anteriores.
 
 La recepción de lecturas y los cambios administrativos bloquean la misma fila del controlador ESP32. La recepción revalida autorización, revocación y vencimiento dentro de su transacción; una identidad obtenida antes de revocar no basta para escribir después.

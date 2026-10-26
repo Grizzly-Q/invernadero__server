@@ -4,6 +4,7 @@ import {
   Get,
   Header,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -11,7 +12,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { DatabaseIdPipe } from '../db/database-id';
 import { ControllerPageDto } from '../controllers/dto/controller.dto';
 import type { PublicUser } from '../users/user.types';
-import { CreateGreenhouseDto } from './greenhouse.dto';
+import {
+  CreateGreenhouseDto,
+  UpdateGreenhouseDto,
+  GreenhouseStatusDto,
+} from './greenhouse.dto';
 import { GreenhousesService } from './greenhouses.service';
 
 /** Rutas humanas autenticadas; cada consulta comprueba la pertenencia en PostgreSQL. */
@@ -31,6 +36,28 @@ export class GreenhousesController {
   @Header('Cache-Control', 'no-store')
   list(@CurrentUser() user: PublicUser, @Query() query: ControllerPageDto) {
     return this.greenhouses.list(user.id, query.beforeId);
+  }
+
+  /** Edita datos generales como ADMIN; la pertenencia se comprueba dentro de la transacción. */
+  @Patch(':id')
+  @Header('Cache-Control', 'no-store')
+  update(
+    @CurrentUser() user: PublicUser,
+    @Param('id', DatabaseIdPipe) id: string,
+    @Body() dto: UpdateGreenhouseDto,
+  ) {
+    return this.greenhouses.update(user.id, id, dto);
+  }
+
+  /** Desactivar conserva historial y bloquea el equipo; reactivar no lo habilita automáticamente. */
+  @Patch(':id/status')
+  @Header('Cache-Control', 'no-store')
+  setStatus(
+    @CurrentUser() user: PublicUser,
+    @Param('id', DatabaseIdPipe) id: string,
+    @Body() dto: GreenhouseStatusDto,
+  ) {
+    return this.greenhouses.setStatus(user.id, id, dto.status);
   }
 
   /** Consulta un invernadero propio; responde 403 si no existe una pertenencia autorizada. */

@@ -68,6 +68,20 @@ jest.setTimeout(180000);
         .get(`/greenhouses/${id}`)
         .set('Authorization', auth(luis.accessToken))
         .expect(403);
+      await request(server)
+        .patch(`/greenhouses/${id}`)
+        .set('Authorization', auth(luis.accessToken))
+        .send({ name: 'Ajeno' })
+        .expect(403);
+      await request(server)
+        .patch(`/greenhouses/${id}/status`)
+        .set('Authorization', auth(luis.accessToken))
+        .send({ status: 'Desactivado' })
+        .expect(403);
+      await request(server)
+        .patch(`/greenhouses/${id}`)
+        .send({ name: 'Sin sesión' })
+        .expect(401);
       const empty = await request(server)
         .get('/greenhouses')
         .set('Authorization', auth(luis.accessToken))
@@ -83,6 +97,36 @@ jest.setTimeout(180000);
         .expect(200);
       expect((view.body as { role: string }).role).toBe('OPERATOR');
       await request(server)
+        .patch(`/greenhouses/${id}`)
+        .set('Authorization', auth(luis.accessToken))
+        .send({ description: 'Sin permiso' })
+        .expect(403);
+      await request(server)
+        .patch(`/greenhouses/${id}/status`)
+        .set('Authorization', auth(luis.accessToken))
+        .send({ status: 'Desactivado' })
+        .expect(403);
+      await request(server)
+        .patch(`/greenhouses/${id}`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ status: 'Desactivado' })
+        .expect(400);
+      const edited = await request(server)
+        .patch(`/greenhouses/${id}`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({
+          name: ' Norte ',
+          height: null,
+          description: 'Descripción editada',
+        })
+        .expect(200);
+      expect(edited.body as unknown).toMatchObject({
+        name: 'Norte',
+        height: null,
+        status: 'Activo',
+        description: 'Descripción editada',
+      });
+      await request(server)
         .get(`/greenhouses/${id}/members`)
         .set('Authorization', auth(luis.accessToken))
         .expect(403);
@@ -91,11 +135,69 @@ jest.setTimeout(180000);
         .set('Authorization', auth(luis.accessToken))
         .send({ greenhouseId: id, name: 'ESP32' })
         .expect(403);
-      await request(server)
+      const controller = await request(server)
         .post('/controllers')
         .set('Authorization', auth(ana.accessToken))
         .send({ greenhouseId: id, name: 'ESP32' })
         .expect(201);
+      const controllerId = (controller.body as { id: string }).id;
+      const issued = await request(server)
+        .post(`/controllers/${controllerId}/credentials`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({})
+        .expect(201);
+      const deviceAuthorization = auth(
+        (issued.body as { credential: string }).credential,
+      );
+      await request(server)
+        .patch(`/controllers/${controllerId}`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ active: true })
+        .expect(200);
+      const deactivated = await request(server)
+        .patch(`/greenhouses/${id}/status`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ status: 'Desactivado' })
+        .expect(200);
+      expect((deactivated.body as { status: string }).status).toBe(
+        'Desactivado',
+      );
+      await request(server)
+        .get('/controllers/me')
+        .set('Authorization', deviceAuthorization)
+        .expect(401);
+      await request(server)
+        .patch(`/controllers/${controllerId}`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ active: true })
+        .expect(400);
+      const renameInactive = await request(server)
+        .patch(`/greenhouses/${id}`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ name: 'Norte actualizado' })
+        .expect(200);
+      expect((renameInactive.body as { status: string }).status).toBe(
+        'Desactivado',
+      );
+      await request(server)
+        .patch(`/greenhouses/${id}/status`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ status: 'Activo' })
+        .expect(200);
+      // Reactivar el registro no autoriza comunicaciones hasta habilitar el ESP32 por separado.
+      await request(server)
+        .get('/controllers/me')
+        .set('Authorization', deviceAuthorization)
+        .expect(401);
+      await request(server)
+        .patch(`/controllers/${controllerId}`)
+        .set('Authorization', auth(ana.accessToken))
+        .send({ active: true })
+        .expect(200);
+      await request(server)
+        .get('/controllers/me')
+        .set('Authorization', deviceAuthorization)
+        .expect(200);
       const own = await request(server)
         .post('/greenhouses')
         .set('Authorization', auth(luis.accessToken))

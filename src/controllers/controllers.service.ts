@@ -32,15 +32,21 @@ export class ControllersService {
    * @param dto Identificador del invernadero existente y nombre validado del controlador.
    * @returns Perfil público persistido, sin sensores ni credenciales.
    * @throws NotFoundException si no existe el invernadero.
-   * @throws ConflictException si el invernadero ya tiene un controlador ESP32.
+   * @throws ConflictException si el invernadero está desactivado o ya tiene un controlador ESP32.
    */
   async create(dto: CreateControllerDto): Promise<PublicController> {
     try {
       return await this.source.transaction(async (manager) => {
-        if (
-          !(await manager.existsBy(GreenhouseEntity, { id: dto.greenhouseId }))
-        )
+        const greenhouse = await manager.findOne(GreenhouseEntity, {
+          where: { id: dto.greenhouseId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!greenhouse)
           throw new NotFoundException('Invernadero no encontrado.');
+        if (greenhouse.status === 'Desactivado')
+          throw new ConflictException(
+            'Reactiva el invernadero antes de registrar su equipo.',
+          );
         return publicController(
           await manager.save(
             ControllerEntity,
@@ -95,16 +101,29 @@ export class ControllersService {
    * @param active Estado solicitado; false también marca Desconectado sin revocar credenciales.
    * @returns Perfil público con el estado persistido.
    * @throws NotFoundException si el controlador no existe.
-   * @throws BadRequestException al activar sin alguna credencial vigente.
+   * @throws BadRequestException al activar sin credencial vigente o con el invernadero desactivado.
    */
   async setActive(id: string, active: boolean): Promise<PublicController> {
     return this.source.transaction(async (manager) => {
+      const reference = await manager.findOneBy(ControllerEntity, { id });
+      if (!reference) throw new NotFoundException('Controlador no encontrado.');
+      // El invernadero se bloquea antes que el equipo, igual que en la desactivación administrativa.
+      const greenhouse = await manager.findOne(GreenhouseEntity, {
+        where: { id: reference.greenhouseId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!greenhouse)
+        throw new NotFoundException('Invernadero no encontrado.');
       const controller = await manager.findOne(ControllerEntity, {
         where: { id },
         lock: { mode: 'pessimistic_write' },
       });
       if (!controller)
         throw new NotFoundException('Controlador no encontrado.');
+      if (active && greenhouse.status === 'Desactivado')
+        throw new BadRequestException(
+          'Reactiva el invernadero antes de habilitar su equipo.',
+        );
       if (
         active &&
         !(await manager.exists(ControllerCredentialEntity, {
