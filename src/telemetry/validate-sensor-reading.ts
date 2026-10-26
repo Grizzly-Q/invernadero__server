@@ -8,8 +8,9 @@ export function validateSensorReading(
   reading: SensorReadingDto,
 ): Date | null {
   if (
-    (sensor.type !== 'NivelAgua' || sensor.unit === '%') &&
-    reading.value > 100
+    ((sensor.type.startsWith('Humedad') || sensor.unit === '%') &&
+      (reading.value < 0 || reading.value > 100)) ||
+    (sensor.type !== 'Temperatura' && reading.value < 0)
   )
     throw new BadRequestException(
       'Los porcentajes de humedad y nivel deben estar entre 0 y 100.',

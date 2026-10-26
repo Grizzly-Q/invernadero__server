@@ -81,7 +81,7 @@ Errores: 400 para formatos o fechas inválidas; 401 para claves inválidas, venc
 
 La comunicación válida actualiza `ultimaComunicacionEn_Controlador` y marca `Conectado`. Desactivar marca `Desconectado`. Aún no se detecta inactividad automáticamente: consultar la fecha de última comunicación para conocer cuándo contactó el controlador ESP32.
 
-Se mantienen un ESP32 por invernadero y un sensor por tipo/controlador ESP32. Los tipos son `HumedadAmbiental`, `HumedadSuelo` y `NivelAgua`. No se activan controladores ESP32 reales ni se generan claves al arrancar la API.
+Se mantienen un ESP32 por invernadero y un sensor por tipo/controlador ESP32. Los cuatro tipos disponibles son `HumedadAmbiental`, `Temperatura`, `HumedadSuelo` y `NivelAgua`; humedad ambiental y temperatura se registran por separado y pueden coexistir. No se activan controladores ESP32 reales ni se generan claves al arrancar la API.
 
 Los usuarios y sesiones humanos se persisten en PostgreSQL. El arranque no crea administradores: el creador de un invernadero recibe la pertenencia ADMIN solo en ese invernadero. Los límites por IP y controlador ESP32 también viven en memoria y se reinician con el proceso.
 
@@ -96,3 +96,13 @@ Remove-Item Env:CONTROLLER_TEST_DATABASE_URL
 La prueba HTTP crea un esquema aleatorio con datos ficticios y lo elimina al terminar. Requiere permisos de creación de esquemas y DDL; no modifica tablas de negocio existentes ni imprime claves.
 
 [Migraciones](../db/migrations/README.md) · [Autenticación](../auth/README.md) · [Telemetría](../telemetry/README.md).
+
+
+## Edición, eliminación y unidades de sensores
+
+- `POST /controllers/:id/sensors`: admite `Temperatura` en `°C` y humedad/nivel en `%`. `unit` es opcional; si se proporciona debe coincidir con la unidad fija. Los registros anteriores no se convierten.
+- `PATCH /controllers/:id/sensors/:sensorId`: recibe el mismo DTO, conserva el identificador y cambia tipo/unidad solamente si no tiene mediciones. Una solicitud idéntica no modifica el registro.
+- `DELETE /controllers/:id/sensors/:sensorId`: devuelve 204; solo elimina registros sin mediciones. No borra historial en cascada.
+- Editar y eliminar requieren pertenencia ADMIN y controlador bloqueado (`active=false`). Se bloquea el controlador y se revalida la pertenencia en la transacción; un sensor ajeno devuelve 404 y un conflicto de historial, actividad o tipo duplicado devuelve 409.
+- Actualizar el firmware cuando cambie un tipo o se retire un identificador; la API no configura los pines ni convierte los valores de la placa.
+- Requiere aplicar la migración `1792771200011-AdmitirTemperatura` antes del despliegue. Verificación con persistencia simulada; pendiente con PostgreSQL y hardware reales.

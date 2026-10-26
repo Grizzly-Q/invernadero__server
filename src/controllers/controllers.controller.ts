@@ -212,8 +212,8 @@ export class ControllersController {
    * POST /controllers/:id/sensors: registra un sensor físico asociado al controlador ESP32.
    * Solo crea su registro; no configura pines, drivers ni calibración de la placa.
    * @param id Identificador del controlador ESP32 en la ruta.
-   * @param dto Cuerpo con type (HumedadAmbiental, HumedadSuelo o NivelAgua)
-   * y unit (de 1 a 10 caracteres tras recortar espacios, por ejemplo %).
+   * @param dto Cuerpo con type (Temperatura, HumedadSuelo, NivelAgua o HumedadAmbiental)
+   * y unit opcional: °C para temperatura; % para humedad y nivel. Omitirla usa la unidad fija.
    * @returns HTTP 201 con id generado, controllerId, type, unit y connectionStatus=Desconectado.
    * @throws NotFoundException (404) si el controlador no existe.
    * @throws ConflictException (409) si ya tiene un sensor del mismo tipo.

@@ -15,6 +15,7 @@ import { GreenhouseEntity } from '../db/entities/greenhouse.entity';
 import { SensorEntity } from '../telemetry/entities/sensor.entity';
 import { ControllerEntity } from './entities/controller.entity';
 import { ControllerCredentialEntity } from './entities/controller-credential.entity';
+import { sensorUnit } from './sensor-units';
 import { publicController } from './controller.types';
 import type { PublicController } from './controller.types';
 import type {
@@ -194,7 +195,7 @@ export class ControllersService {
   /**
    * Persiste un sensor con estado inicial Desconectado; no configura el hardware de la placa.
    * @param controllerId Identificador del controlador ESP32 propietario.
-   * @param dto Tipo de sensor permitido y unidad de medida previamente validados.
+   * @param dto Tipo permitido y unidad opcional; comprueba la unidad canónica antes de guardar.
    * @returns Sensor creado con identificador generado por PostgreSQL.
    * @throws NotFoundException si el controlador no existe.
    * @throws ConflictException si ya existe ese tipo de sensor en el controlador.
@@ -216,7 +217,7 @@ export class ControllersService {
           manager.create(SensorEntity, {
             controllerId,
             type: dto.type,
-            unit: dto.unit,
+            unit: sensorUnit(dto.type, dto.unit),
           }),
         );
       });

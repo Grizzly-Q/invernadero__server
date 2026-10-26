@@ -30,7 +30,7 @@ export class SensorReadingDto {
   measuredAt?: string | null;
 
   @IsNumber({ allowInfinity: false, allowNaN: false, maxDecimalPlaces: 2 })
-  @Min(0)
+  @Min(-273.15)
   @Max(99999.99)
   value!: number;
 }
