@@ -24,7 +24,7 @@ Todas las columnas nuevas de negocio siguen `campo_Tabla`. Las propiedades TypeS
 
 Se conservan las columnas antiguas y sus relaciones, salvo `Medicion.fechaHora`, que se convierte y renombra a `medidoEn_Medicion`. También se sustituye su clave primaria compuesta por `idMedicion_Medicion`. Las consultas antiguas que utilicen `fechaHora` deben actualizarse.
 
-Se mantiene un controlador por invernadero y un sensor de cada tipo por controlador. Los tipos actuales son `HumedadAmbiental`, `HumedadSuelo` y `NivelAgua`; no se incorpora temperatura en estos cambios.
+Se mantiene un controlador por invernadero y un sensor de cada tipo por controlador. La migración `1792771200011-AdmitirTemperatura` incorpora `Temperatura` al CHECK de tipos sin convertir los sensores de humedad existentes. Aplicarla antes de desplegar el nuevo registro de sensores; la reversión falla si todavía existen sensores de temperatura.
 
 ## Conservación de datos
 

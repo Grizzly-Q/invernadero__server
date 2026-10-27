@@ -1,3 +1,5 @@
+import { SensorsController } from '../src/controllers/sensors.controller';
+import { SensorsService } from '../src/controllers/sensors.service';
 import { Global, Module } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -55,6 +57,7 @@ describe('Invernaderos HTTP y aislamiento', () => {
     credential?: string;
   }> = [];
   const controllers = { create: jest.fn(), list: jest.fn() };
+  const sensors = { change: jest.fn() };
   const credentials = { issue: jest.fn() };
   const source = {
     options: { type: 'postgres', schema: 'prueba' },
@@ -173,7 +176,7 @@ describe('Invernaderos HTTP y aislamiento', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [TestDatabaseModule, GreenhousesModule],
-      controllers: [ControllersController],
+      controllers: [ControllersController, SensorsController],
       providers: [
         { provide: DataSource, useValue: source },
         {
@@ -195,6 +198,7 @@ describe('Invernaderos HTTP y aislamiento', () => {
           },
         },
         { provide: ControllersService, useValue: controllers },
+        { provide: SensorsService, useValue: sensors },
         { provide: ControllerCredentialsService, useValue: credentials },
         { provide: APP_GUARD, useClass: AuthenticationGuard },
         { provide: APP_GUARD, useClass: RolesGuard },
@@ -531,5 +535,61 @@ describe('Invernaderos HTTP y aislamiento', () => {
       controllerId: '7',
       items: [],
     });
+  });
+  it('permite editar temperatura al ADMIN y valida el DTO real', async () => {
+    await create('ana').expect(201);
+    sensors.change.mockResolvedValueOnce({
+      id: '9',
+      controllerId: '7',
+      type: 'Temperatura',
+      unit: '°C',
+      connectionStatus: 'Desconectado',
+    });
+    await request(server)
+      .patch('/controllers/7/sensors/9')
+      .set('Authorization', 'Bearer ana')
+      .send({ type: 'Temperatura' })
+      .expect(200);
+    expect(sensors.change).toHaveBeenCalledWith('ana', '7', '9', {
+      type: 'Temperatura',
+    });
+    await request(server)
+      .patch('/controllers/7/sensors/9')
+      .set('Authorization', 'Bearer ana')
+      .send({ type: 'Inventado' })
+      .expect(400);
+    await request(server)
+      .patch('/controllers/7/sensors/9')
+      .set('Authorization', 'Bearer ana')
+      .send({ type: 'Temperatura', controllerId: '8' })
+      .expect(400);
+    expect(sensors.change).toHaveBeenCalledTimes(1);
+  });
+  it('elimina por ruta anidada y devuelve 204 sin cuerpo', async () => {
+    await create('ana').expect(201);
+    const respuesta = await request(server)
+      .delete('/controllers/7/sensors/9')
+      .set('Authorization', 'Bearer ana')
+      .expect(204);
+    expect(respuesta.text).toBe('');
+    expect(sensors.change).toHaveBeenCalledWith('ana', '7', '9');
+  });
+  it('rechaza edición y eliminación sin sesión o por OPERATOR y cuentas ajenas', async () => {
+    await create('ana').expect(201);
+    memberships.set('operador:1', Role.OPERATOR);
+    for (const metodo of ['patch', 'delete'] as const) {
+      await request(server)
+        [metodo]('/controllers/7/sensors/9')
+        .send({ type: 'Temperatura' })
+        .expect(401);
+      for (const token of ['operador', 'ajeno']) {
+        await request(server)
+          [metodo]('/controllers/7/sensors/9')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ type: 'Temperatura' })
+          .expect(403);
+      }
+    }
+    expect(sensors.change).not.toHaveBeenCalled();
   });
 });

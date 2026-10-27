@@ -19,7 +19,7 @@ export class TelemetryController {
    * @param request Petición cuya identidad controller fue establecida por el guard, no por el JSON.
    * @param dto Cuerpo { readings: [...] } con entre 1 y 100 lecturas. Cada una contiene sensorId
    * (bigint como cadena), readingId (1 a 100 caracteres alfanuméricos, guiones o dos puntos,
-   * sin prefijo reservado historica:), value (0 a 99999.99, hasta dos decimales)
+   * sin prefijo reservado historica:), value (-273.15 a 99999.99 para temperatura; otros tipos desde 0, hasta dos decimales)
    * y measuredAt opcional (fecha ISO con zona o null si el ESP32 desconoce la hora).
    * Los porcentajes de humedad y los sensores con unidad % no pueden superar 100.
    * @returns HTTP 200 con { controllerId, received, inserted, duplicates }, también para reintentos.

@@ -56,15 +56,16 @@ export class ControllerPageDto {
 /** Registra un tipo de sensor admitido por el esquema sin aceptar su identificador del cliente. */
 export class CreateSensorDto {
   /** Tipo admitido por PostgreSQL; actualmente solo puede registrarse uno de cada tipo por controlador ESP32. */
-  @IsIn(['HumedadAmbiental', 'HumedadSuelo', 'NivelAgua'])
+  @IsIn(['HumedadAmbiental', 'HumedadSuelo', 'NivelAgua', 'Temperatura'])
   type!: SensorEntity['type'];
 
-  /** Unidad de los valores enviados: de 1 a 10 caracteres, por ejemplo % o cm; no realiza conversiones. */
+  /** Unidad compatible: °C para temperatura y % para humedad o nivel; omitirla usa la unidad del tipo. No convierte datos. */
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(10)
-  unit!: string;
+  unit?: string;
 }

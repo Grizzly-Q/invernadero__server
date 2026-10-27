@@ -19,7 +19,7 @@ import { ControllerEntity } from '../../controllers/entities/controller.entity';
 )
 @Check(
   'CK_Sensor_Tipo',
-  `"tipoSensor" IN ('HumedadAmbiental', 'HumedadSuelo', 'NivelAgua')`,
+  `"tipoSensor" IN ('HumedadAmbiental', 'HumedadSuelo', 'NivelAgua', 'Temperatura')`,
 )
 export class SensorEntity {
   @PrimaryGeneratedColumn('identity', {
@@ -45,7 +45,7 @@ export class SensorEntity {
   controller!: Relation<ControllerEntity>;
 
   @Column({ name: 'tipoSensor', type: 'varchar', length: 30 })
-  type!: 'HumedadAmbiental' | 'HumedadSuelo' | 'NivelAgua';
+  type!: 'HumedadAmbiental' | 'HumedadSuelo' | 'NivelAgua' | 'Temperatura';
 
   @Column({ name: 'unidadMedida', type: 'varchar', length: 10 })
   unit!: string;

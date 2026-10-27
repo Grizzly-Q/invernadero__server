@@ -33,7 +33,7 @@ Cada lote admite de 1 a 100 lecturas y se procesa en una transacción. Todos los
 | `sensorId`   | Cadena decimal positiva dentro del rango bigint de PostgreSQL.                                                                                |
 | `readingId`  | De 1 a 100 caracteres alfanuméricos, guiones, guiones bajos o dos puntos; empieza por letra o número. El prefijo `historica:` está reservado. |
 | `measuredAt` | Opcional o null sin reloj sincronizado. ISO 8601 con hora y zona explícita; máximo cinco minutos en el futuro.                                |
-| `value`      | Número finito no negativo, máximo dos decimales y `99999.99`. Humedades y sensores con unidad `%` tienen máximo 100.                          |
+| `value`      | Número finito con máximo dos decimales y `99999.99`. Temperatura admite desde -273.15 °C; otros tipos no admiten negativos. Humedades y sensores con unidad `%` tienen máximo 100.                          |
 
 No inventar fechas cuando el ESP32 no tenga reloj sincronizado. Android puede mostrar el instante en hora de Perú.
 
@@ -69,7 +69,7 @@ La recepción revalida la credencial bajo bloqueo del equipo, serializa envíos 
 
 ## Límites y alcance
 
-Se aplican 60 solicitudes por minuto y ruta/IP, más 60 por minuto y ruta/equipo autenticado. Los contadores viven en memoria. El esquema admite `HumedadAmbiental`, `HumedadSuelo` y `NivelAgua`, un sensor por tipo/equipo.
+Se aplican 60 solicitudes por minuto y ruta/IP, más 60 por minuto y ruta/equipo autenticado. Los contadores viven en memoria. El esquema admite `Temperatura`, `HumedadSuelo`, `NivelAgua` y `HumedadAmbiental`, un sensor por tipo/equipo.
 
 No se incluyen alertas automáticas ni control de actuadores. El firmware físico debe configurarse con URL HTTPS, su credencial y los identificadores de sensores.
 
